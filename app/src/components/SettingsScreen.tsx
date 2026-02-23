@@ -58,7 +58,7 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
                 const lastTime = getLastCheckTime();
 
                 if (lastTime > 0) {
-                    setLastCheckedText(new Date(lastTime).toLocaleString('ar-EG', {
+                    setLastCheckedText(new Date(lastTime).toLocaleString('en-US', {
                         dateStyle: 'short',
                         timeStyle: 'short'
                     }));
@@ -69,7 +69,7 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
                 setCurrentVersion(overview.currentVersion || '---');
                 setLatestVersion(overview.latestVersion || '---');
                 if (overview.latestPublishedAt) {
-                    const formatted = new Date(overview.latestPublishedAt).toLocaleDateString('ar-EG');
+                    const formatted = new Date(overview.latestPublishedAt).toLocaleDateString('en-US');
                     setLatestPublishedAt(formatted);
                 }
             } catch {
@@ -182,14 +182,14 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
                 setCurrentVersion(overview.currentVersion || '---');
                 setLatestVersion(overview.latestVersion || '---');
                 if (overview.latestPublishedAt) {
-                    const formatted = new Date(overview.latestPublishedAt).toLocaleDateString('ar-EG');
+                    const formatted = new Date(overview.latestPublishedAt).toLocaleDateString('en-US');
                     setLatestPublishedAt(formatted);
                 }
             }
 
             const lastTime = getLastCheckTime();
             if (lastTime > 0) {
-                setLastCheckedText(new Date(lastTime).toLocaleString('ar-EG', {
+                setLastCheckedText(new Date(lastTime).toLocaleString('en-US', {
                     dateStyle: 'short',
                     timeStyle: 'short'
                 }));
@@ -515,7 +515,18 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
                                     <img src="/assets/icons/icon-512.webp" alt="App Icon" className="w-full h-full object-contain rounded-2xl" />
                                 </div>
                                 <h2 className={`text-2xl font-amiri font-bold mb-1 ${D ? 'text-white' : 'text-slate-800'}`}>تطبيق Sirat</h2>
-                                <p className={`text-[13px] ${D ? 'text-white/40' : 'text-slate-500'}`}>رفيقك الإسلامي الشامل</p>
+<p className={`text-[13px] ${D ? 'text-white/40' : 'text-slate-500'} mb-3`}>رفيقك الإسلامي الشامل</p>
+                                    <a 
+                                        href="https://github.com/H-Ossama/Sirat" 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-bold transition-all ${
+                                            D ? 'bg-white/[0.05] text-white/60 border border-white/10' : 'bg-slate-100 text-slate-600 border border-slate-200'
+                                        } active:scale-95`}
+                                    >
+                                        <GithubIcon className="w-3.5 h-3.5" />
+                                        <span>مشروع مفتوح المصدر على GitHub</span>
+                                    </a>
                             </div>
 
                             <div className={card}>
@@ -589,7 +600,12 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
                                             : 'bg-slate-50 border-slate-200 text-slate-700'
                                             } ${checkingUpdate ? 'opacity-60' : ''}`}
                                     >
-                                        <ZapIcon className={`w-4 h-4 ${checkingUpdate ? 'animate-spin' : ''}`} />
+                                        <svg className={`w-4 h-4 ${checkingUpdate ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                                            {checkingUpdate 
+                                                ? <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m14.836 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-14.836-2m14.836 2H15" />
+                                                : <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                            }
+                                        </svg>
                                         {checkingUpdate ? 'جاري التحقق...' : 'التحقق الآن من التحديثات'}
                                     </button>
 

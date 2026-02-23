@@ -20,6 +20,7 @@ export interface RewardsState {
     completedDeedIds: number[];
     completedChallengeDate: string; // YYYY-MM-DD
     userName: string;
+    userGender?: 'male' | 'female';
 }
 
 const STORAGE_KEY = 'rewards_state_v3';
@@ -30,6 +31,7 @@ function getTodayStr(): string {
 }
 
 function getDefaultState(): RewardsState {
+    const savedGender = localStorage.getItem('user_gender') as 'male' | 'female' | null;
     return {
         totalXP: 0,
         currentStreak: 0,
@@ -38,7 +40,8 @@ function getDefaultState(): RewardsState {
         unlockedBadgeIds: [],
         completedDeedIds: [],
         completedChallengeDate: '',
-        userName: 'أخي المسلم',
+        userName: savedGender === 'female' ? 'أختي المسلمة' : 'أخي المسلم',
+        userGender: savedGender || 'male',
     };
 }
 
@@ -70,6 +73,19 @@ export function saveUserName(name: string): void {
     const state = getRewardsState();
     state.userName = name;
     saveState(state);
+}
+
+export function saveUserGender(gender: 'male' | 'female'): void {
+    const state = getRewardsState();
+    state.userGender = gender;
+    // Also update default name if it hasn't been changed from default
+    const genderName = gender === 'female' ? 'أختي المسلمة' : 'أخي المسلم';
+    const otherGenderName = gender === 'female' ? 'أخي المسلم' : 'أختي المسلمة';
+    if (state.userName === otherGenderName || state.userName === 'أخي المسلم' || state.userName === 'أختي المسلمة') {
+        state.userName = genderName;
+    }
+    saveState(state);
+    localStorage.setItem('user_gender', gender);
 }
 
 export function getDailyChallenge(): Deed | undefined {

@@ -54,12 +54,12 @@ function TabBar({ activeTab, onTabChange }: { activeTab: Screen; onTabChange: (t
 
     // Side tabs (2 on each side of center home)
     const leftTabs: { id: Screen; label: string; icon: React.ReactNode }[] = [
-        { id: 'tasbih', label: 'التسبيح', icon: <BeadsIcon className="w-[20px] h-[20px]" /> },
-        { id: 'videos', label: 'الفيديوهات', icon: <PlayIcon className="w-[20px] h-[20px]" /> },
+        { id: 'tasbih', label: 'التسبيح', icon: <BeadsIcon className="w-[24px] h-[24px]" /> },
+        { id: 'videos', label: 'الفيديوهات', icon: <PlayIcon className="w-[24px] h-[24px]" /> },
     ];
     const rightTabs: { id: Screen; label: string; icon: React.ReactNode }[] = [
-        { id: 'hadith', label: 'الحديث', icon: <HadithIcon className="w-[20px] h-[20px]" /> },
-        { id: 'settings', label: 'المزيد', icon: <SettingsIcon className="w-[20px] h-[20px]" /> },
+        { id: 'hadith', label: 'الحديث', icon: <HadithIcon className="w-[24px] h-[24px]" /> },
+        { id: 'settings', label: 'المزيد', icon: <SettingsIcon className="w-[24px] h-[24px]" /> },
     ];
 
     const renderTab = (tab: { id: Screen; label: string; icon: React.ReactNode }) => {
@@ -68,7 +68,7 @@ function TabBar({ activeTab, onTabChange }: { activeTab: Screen; onTabChange: (t
             <button
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
-                className={`relative flex flex-col items-center gap-1.5 px-3 py-2 rounded-2xl transition-all duration-300 active:scale-90 ${isActive
+                className={`relative flex-1 flex flex-col items-center gap-1.5 py-2 rounded-2xl transition-all duration-300 active:scale-90 ${isActive
                     ? theme === 'light'
                         ? 'text-gold-600'
                         : 'text-gold-400'
@@ -106,16 +106,16 @@ function TabBar({ activeTab, onTabChange }: { activeTab: Screen; onTabChange: (t
             }`}
             style={{ backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', paddingBottom: 'calc(10px + env(safe-area-inset-bottom, 0px))' }}
         >
-            <div className="flex items-end justify-around px-3 pt-2 pb-1">
+            <div className="flex items-end px-2 pt-2 pb-1">
                 {/* Left tabs */}
                 {leftTabs.map(renderTab)}
 
                 {/* Center Home Button */}
-                <div className="flex flex-col items-center -mt-5">
+                <div className="flex-1 flex flex-col items-center -mt-5">
                     <button
                         onClick={() => onTabChange('home')}
-                        className={`relative w-[58px] h-[58px] rounded-[20px] flex items-center justify-center transition-all duration-300 active:scale-90 shadow-lg ${isHomeActive
-                            ? 'bg-gradient-to-br from-gold-400 to-amber-500 shadow-gold-500/40 scale-105'
+                        className={`relative w-[58px] h-[58px] rounded-[22px] flex items-center justify-center transition-all duration-300 active:scale-90 shadow-lg ${isHomeActive
+                            ? 'bg-gradient-to-br from-gold-400 to-amber-500 shadow-gold-500/40 scale-110'
                             : theme === 'light'
                                 ? 'bg-gradient-to-br from-gold-400 to-amber-500 shadow-gold-400/30'
                                 : 'bg-gradient-to-br from-gold-500/80 to-amber-600/80 shadow-gold-500/20'
@@ -123,11 +123,11 @@ function TabBar({ activeTab, onTabChange }: { activeTab: Screen; onTabChange: (t
                     >
                         {/* Glow ring when active */}
                         {isHomeActive && (
-                            <div className="absolute inset-0 rounded-[20px] ring-2 ring-gold-300/50 ring-offset-2 ring-offset-transparent animate-pulse" />
+                            <div className="absolute inset-0 rounded-[22px] ring-2 ring-gold-300/50 ring-offset-2 ring-offset-transparent animate-pulse" />
                         )}
                         <HomeIcon className="w-[24px] h-[24px] text-white drop-shadow-sm" />
                     </button>
-                    <span className={`text-[10px] font-bold mt-2 transition-colors duration-300 ${isHomeActive
+                    <span className={`text-[10px] font-bold mt-1.5 transition-colors duration-300 ${isHomeActive
                         ? theme === 'light' ? 'text-gold-600' : 'text-gold-400'
                         : theme === 'light' ? 'text-slate-400' : 'text-white/30'
                         }`}>الرئيسية</span>

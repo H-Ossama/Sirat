@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Geolocation } from '@capacitor/geolocation';
 import { usePrayerTimes } from '../hooks/usePrayerTimes';
-import { saveUserName } from '../services/rewardsStore';
+import { saveUserName, saveUserGender } from '../services/rewardsStore';
 import { CALCULATION_METHODS } from '../services/prayerService';
 import { MapPinIcon } from './Icons';
 import { useTheme } from './ThemeContext';
@@ -10,7 +10,7 @@ interface OnboardingScreenProps {
     onComplete: () => void;
 }
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 6;
 
 function StepDots({ current, isDark }: { current: number; isDark: boolean }) {
     return (
@@ -53,6 +53,45 @@ function StepWelcome({ name, onChange, isDark }: { name: string; onChange: (v: s
                     autoFocus
                     enterKeyHint="next"
                 />
+            </div>
+        </div>
+    );
+}
+
+function StepGender({ gender, onChange, isDark }: { gender: 'male' | 'female' | null; onChange: (g: 'male' | 'female') => void; isDark: boolean }) {
+    return (
+        <div className="flex flex-col h-full gap-6" dir="rtl">
+            <div className="text-center pt-4">
+                <h2 className={`text-2xl font-amiri font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-800'}`}>نوع الجنس</h2>
+                <p className={`text-[13px] ${isDark ? 'text-white/40' : 'text-slate-500'}`}>تساعدنا هذه المعلومة لتخصيص محتوى التطبيق</p>
+            </div>
+
+            <div className="flex gap-4">
+                <button
+                    onClick={() => onChange('male')}
+                    className={`flex-1 flex flex-col items-center gap-4 py-8 rounded-3xl transition-all border ${gender === 'male'
+                        ? 'bg-gold-500/10 border-gold-400 shadow-lg shadow-gold-500/10'
+                        : isDark ? 'bg-white/[0.03] border-white/[0.07]' : 'bg-white border-slate-200 shadow-sm'
+                    } active:scale-95`}
+                >
+                    <div className={`w-16 h-16 rounded-full flex items-center justify-center ${gender === 'male' ? 'bg-gold-400 text-[#0b1929]' : isDark ? 'bg-white/5 text-gold-400/40' : 'bg-gold-50 text-gold-500/50'}`}>
+                        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                    </div>
+                    <span className={`text-[18px] font-amiri font-bold ${gender === 'male' ? 'text-gold-300' : isDark ? 'text-white/60' : 'text-slate-600'}`}>ذكر</span>
+                </button>
+
+                <button
+                    onClick={() => onChange('female')}
+                    className={`flex-1 flex flex-col items-center gap-4 py-8 rounded-3xl transition-all border ${gender === 'female'
+                        ? 'bg-rose-500/10 border-rose-400 shadow-lg shadow-rose-500/10'
+                        : isDark ? 'bg-white/[0.03] border-white/[0.07]' : 'bg-white border-slate-200 shadow-sm'
+                    } active:scale-95`}
+                >
+                    <div className={`w-16 h-16 rounded-full flex items-center justify-center ${gender === 'female' ? 'bg-rose-400 text-white' : isDark ? 'bg-white/5 text-rose-400/40' : 'bg-rose-50 text-rose-500/50'}`}>
+                        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                    </div>
+                    <span className={`text-[18px] font-amiri font-bold ${gender === 'female' ? 'text-rose-300' : isDark ? 'text-white/60' : 'text-slate-600'}`}>أنثى</span>
+                </button>
             </div>
         </div>
     );
@@ -217,12 +256,10 @@ function StepMadhab({ school, onChange, isDark }: { school: number; onChange: (s
     );
 }
 
-function StepHijri({ adj, onChange, userName, isDark }: { adj: number; onChange: (v: number) => void; userName: string; isDark: boolean }) {
+function StepHijri({ adj, onChange, summary, isDark }: { adj: number; onChange: (v: number) => void; summary: any; isDark: boolean }) {
+    const toLatinNum = (str: string) => str.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString());
+
     const getHijriStr = () => {
-        const toLatinNum = (str: string) => {
-            const arabicNumbers = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-            return str.replace(/[٠-٩]/g, (d) => arabicNumbers.indexOf(d).toString());
-        };
         try {
             const date = new Date();
             if (adj !== 0) date.setDate(date.getDate() + adj);
@@ -236,6 +273,8 @@ function StepHijri({ adj, onChange, userName, isDark }: { adj: number; onChange:
             return '—';
         }
     };
+
+    const methodLabel = CALCULATION_METHODS.find(m => m.id === summary.method)?.name || summary.method;
 
     return (
         <div className="flex flex-col h-full gap-4" dir="rtl">
@@ -277,13 +316,27 @@ function StepHijri({ adj, onChange, userName, isDark }: { adj: number; onChange:
                 </button>
             </div>
 
-            <div className="rounded-2xl bg-gold-500/[0.07] border border-gold-400/15 p-4">
-                <p className="text-[12px] text-gold-400/60 font-bold uppercase tracking-wider mb-2 text-center">ملخص إعداداتك</p>
-                <div className="flex justify-between items-center">
-                    <span className={`text-[13px] ${isDark ? 'text-white/50' : 'text-slate-500'}`}>الاسم</span>
-                    <span className={`text-[13px] font-amiri font-bold ${isDark ? 'text-white/80' : 'text-slate-700'}`}>{userName || 'أخي المسلم'}</span>
+            <div className="rounded-2xl bg-gold-500/[0.07] border border-gold-400/15 p-4 mt-auto">
+                <p className="text-[12px] text-gold-400/60 font-bold uppercase tracking-wider mb-2 text-center underline decoration-gold-500/20 underline-offset-4">ملخص إعداداتك</p>
+                <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                        <span className={`text-[12px] ${isDark ? 'text-white/30' : 'text-slate-400'}`}>الاسم</span>
+                        <span className={`text-[13px] font-amiri font-bold ${isDark ? 'text-white/80' : 'text-slate-700'}`}>{summary.name || 'أخي المسلم'}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className={`text-[12px] ${isDark ? 'text-white/30' : 'text-slate-400'}`}>الجنس</span>
+                        <span className={`text-[13px] font-amiri font-bold ${isDark ? 'text-white/80' : 'text-slate-700'}`}>{summary.gender === 'male' ? 'ذكر' : summary.gender === 'female' ? 'أنثى' : '—'}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className={`text-[12px] ${isDark ? 'text-white/30' : 'text-slate-400'}`}>المدينة</span>
+                        <span className={`text-[13px] font-amiri font-bold ${isDark ? 'text-white/80' : 'text-slate-700'}`}>{summary.city || '—'}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className={`text-[12px] ${isDark ? 'text-white/30' : 'text-slate-400'}`}>طريقة الحساب</span>
+                        <span className={`text-[13px] font-amiri font-bold truncate max-w-[150px] ${isDark ? 'text-white/80' : 'text-slate-700'}`}>{methodLabel}</span>
+                    </div>
                 </div>
-                <p className={`text-[11px] text-center mt-3 ${isDark ? 'text-white/20' : 'text-slate-400'}`}>يمكنك تغيير كل هذه الإعدادات لاحقاً من قائمة الإعدادات</p>
+                <p className={`text-[9px] text-center mt-3 ${isDark ? 'text-white/20' : 'text-slate-400'}`}>يمكنك تغيير هذه الإعدادات لاحقاً من الشاشة الرئيسية</p>
             </div>
         </div>
     );
@@ -299,6 +352,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
     const [direction, setDirection] = useState<'forward' | 'back'>('forward');
 
     const [name, setName] = useState('');
+    const [gender, setGender] = useState<'male' | 'female' | null>(null);
     const [cityInput, setCityInput] = useState('');
     const [detectedCity, setDetectedCity] = useState<string | null>(null);
     const [detectedCoords, setDetectedCoords] = useState<string | null>(null);
@@ -312,7 +366,8 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
 
     const canAdvance = (): boolean => {
         if (step === 0) return name.trim().length >= 2;
-        if (step === 1) return !!detectedCity || cityInput.trim().length >= 2;
+        if (step === 1) return gender !== null;
+        if (step === 2) return !!detectedCity || cityInput.trim().length >= 2;
         return true;
     };
 
@@ -400,8 +455,14 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
     };
 
     const finish = () => {
-        const trimmedName = name.trim() || 'أخي المسلم';
-        saveUserName(trimmedName);
+        if (gender) {
+            saveUserGender(gender);
+        }
+        
+        const trimmedName = name.trim();
+        if (trimmedName) {
+            saveUserName(trimmedName);
+        }
 
         if (detectedCity && detectedCoords) {
             changeCity(detectedCoords, detectedCity);
@@ -464,7 +525,8 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
                 style={{ height: 'calc(100% - 140px)', overflowY: 'auto' }}
             >
                 {step === 0 && <StepWelcome name={name} onChange={setName} isDark={isDark} />}
-                {step === 1 && (
+                {step === 1 && <StepGender gender={gender} onChange={g => { setGender(g); handleNext(); }} isDark={isDark} />}
+                {step === 2 && (
                     <StepLocation
                         cityInput={cityInput}
                         onCityInput={setCityInput}
@@ -475,9 +537,21 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
                         isDark={isDark}
                     />
                 )}
-                {step === 2 && <StepMethod methodId={methodId} onChange={setMethodId} isDark={isDark} />}
-                {step === 3 && <StepMadhab school={school} onChange={setSchool} isDark={isDark} />}
-                {step === 4 && <StepHijri adj={hijriAdj} onChange={setHijriAdj} userName={name.trim() || 'أخي المسلم'} isDark={isDark} />}
+                {step === 3 && <StepMethod methodId={methodId} onChange={setMethodId} isDark={isDark} />}
+                {step === 4 && <StepMadhab school={school} onChange={setSchool} isDark={isDark} />}
+                {step === 5 && (
+                    <StepHijri
+                        adj={hijriAdj}
+                        onChange={setHijriAdj}
+                        summary={{
+                            name: name.trim(),
+                            gender,
+                            city: detectedCity || cityInput.trim(),
+                            method: methodId
+                        }}
+                        isDark={isDark}
+                    />
+                )}
             </div>
 
             <div className="absolute bottom-0 left-0 right-0 px-6 pb-safe" style={{ paddingBottom: 'calc(24px + env(safe-area-inset-bottom, 0px))' }}>
