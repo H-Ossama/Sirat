@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { usePrayerTimes } from '../hooks/usePrayerTimes';
 import { useTheme } from './ThemeContext';
 import { getNotificationSettings, NotificationSettings, saveNotificationSettings, scheduleAllNotifications } from '../services/notificationService';
@@ -6,6 +6,7 @@ import { CALCULATION_METHODS } from '../services/prayerService';
 import { MapPinIcon, ZapIcon, ChevronLeftIcon } from './Icons';
 import { LocationSelector } from './LocationSelector';
 import { logInteraction } from '../services/activityLogStore';
+import { checkForAppUpdateIfDue, getUpdateOverview, isNativeAndroid, getLastCheckTime } from '../services/updateService';
 
 interface SettingsScreenProps {
     onBack: () => void;
@@ -35,6 +36,54 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
     });
     const [showLocationSelector, setShowLocationSelector] = useState(false);
     const [activeTab, setActiveTab] = useState<'main' | 'prayer' | 'notifications' | 'appearance' | 'about'>('main');
+    const [currentVersion, setCurrentVersion] = useState('---');
+    const [latestVersion, setLatestVersion] = useState('---');
+    const [latestPublishedAt, setLatestPublishedAt] = useState('---');
+    const [lastCheckedText, setLastCheckedText] = useState('---');
+    const [checkingUpdate, setCheckingUpdate] = useState(false);
+    const [updateStatusText, setUpdateStatusText] = useState('');
+
+    useEffect(() => {
+        let cancelled = false;
+        const loadUpdateInfo = async () => {
+            if (!isNativeAndroid()) {
+                if (!cancelled) {
+                    setUpdateStatusText('ميزة التحديث التلقائي متاحة على أندرويد فقط.');
+                }
+                return;
+            }
+
+            try {
+                const overview = await getUpdateOverview();
+                const lastTime = getLastCheckTime();
+
+                if (lastTime > 0) {
+                    setLastCheckedText(new Date(lastTime).toLocaleString('ar-EG', {
+                        dateStyle: 'short',
+                        timeStyle: 'short'
+                    }));
+                }
+
+                if (!overview || cancelled) return;
+
+                setCurrentVersion(overview.currentVersion || '---');
+                setLatestVersion(overview.latestVersion || '---');
+                if (overview.latestPublishedAt) {
+                    const formatted = new Date(overview.latestPublishedAt).toLocaleDateString('ar-EG');
+                    setLatestPublishedAt(formatted);
+                }
+            } catch {
+                if (!cancelled) {
+                    setUpdateStatusText('تعذر قراءة معلومات التحديث حالياً.');
+                }
+            }
+        };
+
+        loadUpdateInfo();
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     const toggleSetting = (key: keyof NotificationSettings) => {
         const newSettings = { ...settings, [key]: !settings[key] };
@@ -119,6 +168,65 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
             onBack();
         } else {
             setActiveTab('main');
+        }
+    };
+
+    const checkUpdatesNow = async () => {
+        if (!isNativeAndroid()) {
+            setUpdateStatusText('ميزة التحديث متاحة على أندرويد فقط.');
+            return;
+        }
+
+        setCheckingUpdate(true);
+        setUpdateStatusText('جاري التحقق من وجود تحديث...');
+
+        try {
+            const [overview, release] = await Promise.all([
+                getUpdateOverview(),
+                checkForAppUpdateIfDue(true),
+            ]);
+
+            if (overview) {
+                setCurrentVersion(overview.currentVersion || '---');
+                setLatestVersion(overview.latestVersion || '---');
+                if (overview.latestPublishedAt) {
+                    const formatted = new Date(overview.latestPublishedAt).toLocaleDateString('ar-EG');
+                    setLatestPublishedAt(formatted);
+                }
+            }
+
+            const lastTime = getLastCheckTime();
+            if (lastTime > 0) {
+                setLastCheckedText(new Date(lastTime).toLocaleString('ar-EG', {
+                    dateStyle: 'short',
+                    timeStyle: 'short'
+                }));
+            }
+
+            if (release) {
+                window.dispatchEvent(new CustomEvent('app:update-found', { detail: release }));
+                setUpdateStatusText(`تم العثور على تحديث جديد (${release.versionTag}).`);
+                logInteraction({
+                    type: 'settings_check_updates',
+                    category: 'settings',
+                    title: 'فحص التحديثات',
+                    details: `تم العثور على تحديث ${release.versionTag}`,
+                    meta: { hasUpdate: true, version: release.versionTag },
+                });
+            } else {
+                setUpdateStatusText('أنت تستخدم آخر إصدار متاح حالياً.');
+                logInteraction({
+                    type: 'settings_check_updates',
+                    category: 'settings',
+                    title: 'فحص التحديثات',
+                    details: 'لا يوجد تحديث جديد',
+                    meta: { hasUpdate: false },
+                });
+            }
+        } catch {
+            setUpdateStatusText('فشل التحقق من التحديث، حاول مرة أخرى لاحقاً.');
+        } finally {
+            setCheckingUpdate(false);
         }
     };
 
@@ -411,15 +519,52 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
                             <div className={card}>
                                 <div className={`flex items-center justify-between px-5 py-4 ${rowDiv}`} dir="rtl">
                                     <span className={lbl}>الإصدار</span>
-                                    <span className={`text-[12px] font-sans font-bold px-3 py-1 rounded-full ${D ? 'bg-white/[0.05] text-gold-400' : 'bg-gold-50 text-gold-600'}`}>v3.0.0 Beta</span>
+                                    <span className={`text-[12px] font-sans font-bold px-3 py-1 rounded-full ${D ? 'bg-white/[0.05] text-gold-400' : 'bg-gold-50 text-gold-600'}`}>{currentVersion}</span>
                                 </div>
                                 <div className={`flex items-center justify-between px-5 py-4 ${rowDiv}`} dir="rtl">
-                                    <span className={lbl}>تاريخ التحديث</span>
-                                    <span className={`text-[12px] font-sans ${D ? 'text-white/40' : 'text-slate-500 font-bold'}`}>2026/02/22</span>
+                                    <span className={lbl}>آخر إصدار على GitHub</span>
+                                    <span className={`text-[12px] font-sans ${D ? 'text-white/40' : 'text-slate-500 font-bold'}`}>{latestVersion}</span>
+                                </div>
+                                <div className={`flex items-center justify-between px-5 py-4 ${rowDiv}`} dir="rtl">
+                                    <span className={lbl}>تاريخ آخر إصدار</span>
+                                    <span className={`text-[12px] font-sans ${D ? 'text-white/40' : 'text-slate-500 font-bold'}`}>{latestPublishedAt}</span>
                                 </div>
                                 <div className="flex items-center justify-between px-5 py-4" dir="rtl">
                                     <span className={lbl}>جميع الحقوق محفوظة</span>
                                     <span className={`text-[12px] font-sans ${D ? 'text-white/30' : 'text-slate-400 font-bold'}`}>© 2026</span>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section>
+                            <SectionHead
+                                icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m14.836 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-14.836-2m14.836 2H15" /></svg>}
+                                title="تحديثات التطبيق"
+                                subtitle="فحص فوري للتحديثات المتاحة"
+                            />
+
+                            <div className={card} dir="rtl">
+                                <div className="px-4 py-4">
+                                    <button
+                                        onClick={checkUpdatesNow}
+                                        disabled={checkingUpdate}
+                                        className={`w-full py-3 rounded-2xl border flex items-center justify-center gap-3 text-[12px] font-bold transition-all active:scale-[0.98] ${D
+                                            ? 'bg-white/[0.04] border-white/[0.08] text-white/85'
+                                            : 'bg-slate-50 border-slate-200 text-slate-700'
+                                            } ${checkingUpdate ? 'opacity-60' : ''}`}
+                                    >
+                                        <ZapIcon className={`w-4 h-4 ${checkingUpdate ? 'animate-spin' : ''}`} />
+                                        {checkingUpdate ? 'جاري التحقق...' : 'التحقق الآن من التحديثات'}
+                                    </button>
+
+                                    <div className="flex items-center justify-between mt-3 px-1">
+                                        <span className={`text-[11px] ${D ? 'text-white/30' : 'text-slate-400 font-bold'}`}>آخر فحص: {lastCheckedText}</span>
+                                        {updateStatusText && (
+                                            <p className={`text-[11px] ${D ? 'text-white/50' : 'text-slate-500'} text-left`}>
+                                                {updateStatusText}
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </section>

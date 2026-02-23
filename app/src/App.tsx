@@ -14,6 +14,19 @@ import { VideoPlayerProvider } from './components/VideoPlayerContext';
 import { MiniAudioPlayer } from './components/MiniAudioPlayer';
 import { MiniVideoPlayer } from './components/MiniVideoPlayer';
 import { logInteraction, logScreenSession } from './services/activityLogStore';
+import { AppUpdateModal, type UpdateModalStage } from './components/AppUpdateModal';
+import {
+    canInstallAppPackages,
+    checkForAppUpdateIfDue,
+    clearDeferredUpdateReminder,
+    isNativeAndroid,
+    listenToNativeUpdateProgress,
+    openInstallPermissionSettings,
+    postponeUpdateToTomorrow,
+    startAppUpdateDownload,
+    type AppUpdateRelease,
+} from './services/updateService';
+import type { PluginListenerHandle } from '@capacitor/core';
 
 const OnboardingScreen = lazy(() => import('./components/OnboardingScreen').then(m => ({ default: m.OnboardingScreen })));
 const AdhkarScreen = lazy(() => import('./components/AdhkarScreen').then(m => ({ default: m.AdhkarScreen })));
@@ -154,8 +167,15 @@ function AppContent() {
     const [quranAutoOpenPage, setQuranAutoOpenPage] = useState<number | null>(null);
     const [videosInCategory, setVideosInCategory] = useState(false);
     const [hadithInDetails, setHadithInDetails] = useState(false);
+    const [updateModalOpen, setUpdateModalOpen] = useState(false);
+    const [updateModalStage, setUpdateModalStage] = useState<UpdateModalStage>('available');
+    const [updateProgress, setUpdateProgress] = useState(0);
+    const [updateMessage, setUpdateMessage] = useState('');
+    const [availableUpdate, setAvailableUpdate] = useState<AppUpdateRelease | null>(null);
     const currentSessionScreenRef = useRef<Screen>('home');
     const currentSessionStartedAtRef = useRef<number>(Date.now());
+    const availableUpdateRef = useRef<AppUpdateRelease | null>(null);
+    const waitingInstallPermissionRef = useRef(false);
 
     const screenLabelMap: Record<Screen, string> = {
         home: 'الرئيسية',
@@ -281,6 +301,164 @@ function AppContent() {
         if (currentScreen !== 'hadith') setHadithInDetails(false);
     }, [currentScreen]);
 
+    const showAvailableUpdate = (release: AppUpdateRelease) => {
+        availableUpdateRef.current = release;
+        setAvailableUpdate(release);
+        setUpdateModalStage('available');
+        setUpdateProgress(0);
+        setUpdateMessage('');
+        setUpdateModalOpen(true);
+    };
+
+    const runUpdateCheck = async (force = false) => {
+        try {
+            const release = await checkForAppUpdateIfDue(force);
+            if (release) {
+                showAvailableUpdate(release);
+            }
+        } catch (error) {
+            console.warn('Failed to check app updates', error);
+        }
+    };
+
+    const startUpdateDownloadFlow = async () => {
+        const release = availableUpdateRef.current;
+        if (!release) return;
+
+        setUpdateModalOpen(true);
+        setUpdateModalStage('progress');
+        setUpdateProgress(0);
+        setUpdateMessage('جاري تحضير التحديث...');
+
+        try {
+            const result = await startAppUpdateDownload(release);
+            if (result.requiresInstallPermission) {
+                waitingInstallPermissionRef.current = true;
+                setUpdateModalStage('permission');
+                setUpdateMessage('');
+                return;
+            }
+
+            if (!result.started) {
+                setUpdateModalStage('error');
+                setUpdateMessage(result.message || 'تعذر بدء تنزيل التحديث.');
+            }
+        } catch (error: any) {
+            setUpdateModalStage('error');
+            setUpdateMessage(error?.message || 'حدث خطأ أثناء بدء التحديث.');
+        }
+    };
+
+    const handleUpdateNow = async () => {
+        const canInstall = await canInstallAppPackages();
+        if (!canInstall) {
+            waitingInstallPermissionRef.current = true;
+            setUpdateModalStage('permission');
+            return;
+        }
+
+        waitingInstallPermissionRef.current = false;
+        await startUpdateDownloadFlow();
+    };
+
+    const handleUpdateLater = async () => {
+        const release = availableUpdateRef.current;
+        if (release) {
+            await postponeUpdateToTomorrow(release);
+        }
+        setUpdateModalOpen(false);
+    };
+
+    const handleOpenPermission = async () => {
+        try {
+            waitingInstallPermissionRef.current = true;
+            await openInstallPermissionSettings();
+            setUpdateMessage('بعد منح الإذن، ارجع للتطبيق وسيبدأ التحديث تلقائيًا.');
+        } catch (error: any) {
+            setUpdateModalStage('error');
+            setUpdateMessage(error?.message || 'تعذر فتح إعدادات الإذن.');
+        }
+    };
+
+    useEffect(() => {
+        if (!isNativeAndroid()) return;
+
+        let progressHandle: PluginListenerHandle | null = null;
+        let disposed = false;
+
+        const setup = async () => {
+            progressHandle = await listenToNativeUpdateProgress((event) => {
+                if (disposed) return;
+
+                if (event.phase === 'downloading') {
+                    setUpdateModalOpen(true);
+                    setUpdateModalStage('progress');
+                    setUpdateProgress(event.progress >= 0 ? event.progress : 0);
+                    setUpdateMessage('جاري تنزيل التحديث...');
+                    return;
+                }
+
+                if (event.phase === 'installing') {
+                    setUpdateModalOpen(true);
+                    setUpdateModalStage('progress');
+                    setUpdateProgress(100);
+                    setUpdateMessage('اكتمل التنزيل، جاري فتح التثبيت...');
+                    return;
+                }
+
+                if (event.phase === 'installer_opened') {
+                    setUpdateModalOpen(true);
+                    setUpdateModalStage('progress');
+                    setUpdateProgress(100);
+                    setUpdateMessage('تم فتح شاشة التثبيت. أكمل التثبيت من النظام.');
+                    void clearDeferredUpdateReminder();
+                    return;
+                }
+
+                if (event.phase === 'error') {
+                    setUpdateModalOpen(true);
+                    setUpdateModalStage('error');
+                    setUpdateMessage(event.message || 'تعذر تنزيل أو تثبيت التحديث.');
+                }
+            });
+
+            await runUpdateCheck(false);
+        };
+
+        setup();
+
+        const resumeHandlePromise = CapApp.addListener('resume', async () => {
+            if (waitingInstallPermissionRef.current && availableUpdateRef.current) {
+                const allowed = await canInstallAppPackages();
+                if (allowed) {
+                    waitingInstallPermissionRef.current = false;
+                    await startUpdateDownloadFlow();
+                    return;
+                }
+            }
+
+            await runUpdateCheck(false);
+        });
+
+        const onUpdateFound = (event: Event) => {
+            const customEvent = event as CustomEvent<AppUpdateRelease>;
+            if (customEvent.detail) {
+                showAvailableUpdate(customEvent.detail);
+            }
+        };
+
+        window.addEventListener('app:update-found', onUpdateFound as EventListener);
+
+        return () => {
+            disposed = true;
+            if (progressHandle) {
+                progressHandle.remove();
+            }
+            resumeHandlePromise.then(h => h.remove());
+            window.removeEventListener('app:update-found', onUpdateFound as EventListener);
+        };
+    }, []);
+
     useEffect(() => {
         const init = async () => {
             await requestNotificationPermission();
@@ -405,6 +583,18 @@ function AppContent() {
             {!hideTabBar && (
                 <TabBar activeTab={tabBarScreen} onTabChange={navigateTo} />
             )}
+            <AppUpdateModal
+                open={updateModalOpen}
+                release={availableUpdate}
+                stage={updateModalStage}
+                progress={updateProgress}
+                message={updateMessage}
+                onUpdateNow={handleUpdateNow}
+                onLater={handleUpdateLater}
+                onOpenPermission={handleOpenPermission}
+                onRetry={handleUpdateNow}
+                onCloseError={() => setUpdateModalOpen(false)}
+            />
         </BackHandlerProvider>
     );
 }

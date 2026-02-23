@@ -521,39 +521,130 @@ export function TasbihScreen({ onBack }: TasbihScreenProps) {
                 </div>
 
                 {/* Center Counter */}
-                <div className="flex-1 flex flex-col items-center justify-center relative">
-                    <div className="relative group cursor-pointer select-none" onClick={handlePress}>
-                        <div className={`absolute inset-[-20px] rounded-full blur-[40px] opacity-10 transition-all duration-300 group-active:opacity-30 group-active:scale-110 ${isDark ? 'bg-gold-400' : 'bg-gold-300'}`} />
-                        <div className={`absolute inset-0 rounded-full border-2 transition-all duration-[400ms] scale-100 group-active:scale-150 group-active:opacity-0 ${isDark ? 'border-gold-400/20' : 'border-gold-200'}`} />
+                <div className="flex-1 flex flex-col items-center justify-center">
+                    {/* Fixed 280×280 wrapper — ring SVG fills it exactly, no negative positioning */}
+                    <div
+                        className="relative group cursor-pointer select-none"
+                        style={{ width: 280, height: 280 }}
+                        onClick={handlePress}
+                    >
+                        {/* Ambient glow pulse */}
+                        <div
+                            className="absolute rounded-full pointer-events-none transition-all duration-300 group-active:scale-110 group-active:opacity-30"
+                            style={{
+                                inset: 32,
+                                filter: 'blur(36px)',
+                                opacity: 0.18,
+                                background: isDark ? '#c8973a' : '#d4a22a',
+                            }}
+                        />
 
-                        <svg className="absolute inset-[-8px] w-[calc(100%+16px)] h-[calc(100%+16px)] -rotate-90 pointer-events-none" viewBox="0 0 100 100">
-                            <circle cx="50" cy="50" r="46" fill="none" className={`${isDark ? 'stroke-white/5' : 'stroke-slate-100'}`} strokeWidth="1.5" />
+                        {/* Progress ring SVG — exactly fills the wrapper */}
+                        <svg
+                            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', transform: 'rotate(-90deg)', overflow: 'visible' }}
+                            viewBox="0 0 100 100"
+                        >
+                            {/* Hairline outer decorative border */}
+                            <circle cx="50" cy="50" r="49"
+                                fill="none"
+                                stroke={isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}
+                                strokeWidth="0.5"
+                            />
+                            {/* Track ring */}
+                            <circle cx="50" cy="50" r="46"
+                                fill="none"
+                                stroke={isDark ? 'rgba(255,255,255,0.1)' : 'rgba(148,163,184,0.35)'}
+                                strokeWidth="3"
+                            />
+                            {/* Progress arc */}
                             {target > 0 && (
                                 <circle
                                     cx="50" cy="50" r="46"
                                     fill="none"
-                                    className={`transition-all duration-300 ${isDark ? 'stroke-gold-400' : 'stroke-gold-500'}`}
-                                    strokeWidth="2.5"
-                                    strokeDasharray="289"
-                                    strokeDashoffset={289 - (289 * (sessionCount % target)) / target}
+                                    stroke={isDark ? '#d4a017' : '#ca8a04'}
+                                    strokeWidth="3.5"
+                                    strokeDasharray="289.03"
+                                    strokeDashoffset={289.03 - (289.03 * (sessionCount % target)) / target}
                                     strokeLinecap="round"
+                                    style={{ transition: 'stroke-dashoffset 0.35s cubic-bezier(0.4,0,0.2,1)' }}
                                 />
                             )}
+                            {/* Glowing dot at progress head */}
+                            {target > 0 && sessionCount % target > 0 && (() => {
+                                const pct = (sessionCount % target) / target;
+                                const angle = pct * 2 * Math.PI; // already rotated -90 in parent
+                                const x = 50 + 46 * Math.cos(angle);
+                                const y = 50 + 46 * Math.sin(angle);
+                                return (
+                                    <circle cx={x} cy={y} r="2"
+                                        fill={isDark ? '#f0c040' : '#ca8a04'}
+                                        style={{ filter: 'drop-shadow(0 0 3px #d4a017)' }}
+                                    />
+                                );
+                            })()}
                         </svg>
 
-                        <div className={`relative w-56 h-56 rounded-full border-[8px] flex flex-col items-center justify-center shadow-2xl transition-all duration-75 active:scale-95 ${isDark ? 'bg-gradient-to-br from-[#1e344d] via-[#112336] to-[#0a1525] border-white/[0.03] shadow-black/80' : 'bg-white border-white shadow-gold-200/30'}`}>
-                            <div className="flex flex-col items-center relative z-10">
-                                <span className={`text-[9px] font-black mb-2 uppercase tracking-[0.3em] opacity-40 ${isDark ? 'text-gold-300' : 'text-gold-600'}`}>الدورة الحالية</span>
-                                <span className={`text-[80px] font-en font-black leading-none drop-shadow-xl ${isDark ? 'text-white' : 'text-slate-800'} ${sessionCount > 999 ? 'text-6xl' : ''}`}>
-                                    {sessionCount.toLocaleString('en-US')}
-                                </span>
-                            </div>
-                            <div className="mt-4 flex gap-2">
+                        {/* Tap ripple */}
+                        <div
+                            className="absolute rounded-full border pointer-events-none transition-all duration-[450ms] scale-100 group-active:scale-[1.5] group-active:opacity-0"
+                            style={{
+                                inset: 18,
+                                borderColor: isDark ? 'rgba(212,160,23,0.25)' : 'rgba(202,138,4,0.3)',
+                                borderWidth: 1.5,
+                            }}
+                        />
+
+                        {/* Inner circular button */}
+                        <div
+                            className="absolute flex flex-col items-center justify-center transition-transform duration-75 active:scale-[0.96]"
+                            style={{
+                                inset: 18,
+                                borderRadius: '50%',
+                                background: isDark
+                                    ? 'radial-gradient(ellipse at 35% 30%, #1e3a5c, #0d1e33 60%, #070d1a)'
+                                    : 'radial-gradient(ellipse at 35% 30%, #ffffff, #f1f5ff 60%, #e8eef8)',
+                                boxShadow: isDark
+                                    ? '0 8px 40px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.4)'
+                                    : '0 8px 40px rgba(180,160,80,0.18), 0 2px 8px rgba(0,0,0,0.08), inset 0 1px 0 #fff',
+                                border: isDark ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(200,200,200,0.5)',
+                            }}
+                        >
+                            <span
+                                className="font-black font-en leading-none"
+                                style={{
+                                    fontSize: sessionCount > 9999 ? 40 : sessionCount > 999 ? 52 : sessionCount > 99 ? 64 : 78,
+                                    color: isDark ? '#ffffff' : '#1e293b',
+                                    textShadow: isDark ? '0 2px 12px rgba(0,0,0,0.6)' : '0 1px 4px rgba(0,0,0,0.1)',
+                                    letterSpacing: '-0.04em',
+                                }}
+                            >
+                                {sessionCount.toLocaleString('en-US')}
+                            </span>
+                            <span
+                                className="font-black uppercase tracking-[0.3em]"
+                                style={{ fontSize: 9, marginTop: 8, color: isDark ? 'rgba(212,160,23,0.55)' : 'rgba(161,98,7,0.6)' }}
+                            >
+                                الدورة الحالية
+                            </span>
+
+                            {/* Cycle dots */}
+                            <div className="flex gap-2 mt-4">
                                 {[0, 1, 2].map(i => {
                                     const activeCount = Math.floor(sessionCount / (target || 999999));
                                     const active = target > 0 && activeCount > i;
                                     return (
-                                        <div key={i} className={`w-2 h-2 rounded-full transition-all duration-500 ${active ? 'bg-gold-500 scale-125 shadow-lg shadow-gold-500/40' : (isDark ? 'bg-white/10' : 'bg-slate-100')}`} />
+                                        <div
+                                            key={i}
+                                            className="rounded-full transition-all duration-500"
+                                            style={{
+                                                width: active ? 10 : 7,
+                                                height: active ? 10 : 7,
+                                                background: active
+                                                    ? (isDark ? '#d4a017' : '#ca8a04')
+                                                    : (isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)'),
+                                                boxShadow: active ? (isDark ? '0 0 8px #d4a017' : '0 0 6px #ca8a04') : 'none',
+                                            }}
+                                        />
                                     );
                                 })}
                             </div>
