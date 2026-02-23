@@ -18,6 +18,11 @@ migrate_working_dir/
 *.iws
 .idea/
 
+# Releases and Keystores
+RELEASES/
+*.keystore
+*.jks
+
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
 # is commented out by default.
@@ -64,3 +69,6 @@ app/.env.*
 
 # Capacitor generated web assets (re-created by cap sync)
 app/android/app/src/main/assets/public/
+
+# Releaseed files
+/Release/
