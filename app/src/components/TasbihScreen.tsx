@@ -394,9 +394,6 @@ export function TasbihScreen({ onBack }: TasbihScreenProps) {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.674a1 1 0 0 0 .707-.293l2.627-2.627A1 1 0 0 0 18 13.376V11a6 6 0 1 0-12 0v2.376a1 1 0 0 0 .293.707l2.627 2.627a1 1 0 0 0 .707.293zM10 21h4v1h-4v-1z" />
                             </svg>
                         </button>
-                        <button onClick={() => setConfirmModal('reset_all')} className={`w-10 h-10 rounded-2xl flex items-center justify-center active:scale-90 transition-all ${isDark ? 'text-white/20 hover:text-red-400' : 'text-slate-300 hover:text-red-500'}`} title="تصفير الكل">
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        </button>
                         <button onClick={() => { const nextVibrate = !vibrate; setVibrate(nextVibrate); triggerHaptic('impact'); logInteraction({ type: 'tasbih_toggle_vibration', category: 'tasbih', title: nextVibrate ? 'تفعيل اهتزاز التسبيح' : 'تعطيل اهتزاز التسبيح', details: currentTasbih.title, meta: { enabled: nextVibrate } }); }} className={`w-10 h-10 rounded-2xl flex items-center justify-center active:scale-90 transition-all ${vibrate ? (isDark ? 'text-gold-400 bg-gold-400/10 border border-gold-400/20' : 'text-gold-600 bg-gold-50 border border-gold-200') : (isDark ? 'text-white/20 bg-white/5 border border-white/10' : 'text-slate-300 bg-slate-100 border border-slate-200')}`}>
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
                         </button>
@@ -653,15 +650,29 @@ export function TasbihScreen({ onBack }: TasbihScreenProps) {
                 </div>
 
                 {/* Bottom Controls */}
-                <div className="mt-6 mb-8 flex items-center justify-between">
-                    <div className="flex-1">
-                        <h2 className={`text-xl font-scheherazade font-bold ${isDark ? 'text-gold-200' : 'text-gold-700'}`}>
+                <div className="mt-6 mb-8 flex items-center justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                        <h2 className={`text-xl font-scheherazade font-bold truncate ${isDark ? 'text-gold-200' : 'text-gold-700'}`}>
                             {currentTasbih.title}
                         </h2>
                         <p className={`text-[10px] font-bold opacity-40 uppercase tracking-widest mt-1 ${isDark ? 'text-white' : 'text-slate-500'}`}>
                             كرر الذكر أعلاه
                         </p>
                     </div>
+                    {/* Reset session to zero */}
+                    <button
+                        onClick={resetSession}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-sm shrink-0 active:scale-95 transition-all border ${
+                            isDark
+                                ? 'bg-white/[0.04] border-white/[0.07] text-white/40 hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/10'
+                                : 'bg-white border-slate-100 text-slate-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 shadow-sm'
+                        }`}
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span>تصفير</span>
+                    </button>
                 </div>
             </div>
         </div>
