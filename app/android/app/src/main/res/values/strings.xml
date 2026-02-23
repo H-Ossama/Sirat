@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Sirat</string>
+    <string name="title_activity_main">Sirat</string>
+    <string name="package_name">com.me3raj.app</string>
+    <string name="custom_url_scheme">com.me3raj.app</string>
+</resources>

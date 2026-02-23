@@ -1,0 +1,468 @@
+@import "tailwindcss";
+
+@theme {
+  --font-naskh: 'Noto Naskh Arabic', serif;
+  --font-amiri: 'Amiri', serif;
+  --font-scheherazade: 'Scheherazade New', serif;
+
+  --color-gold-50: #fdf8e8;
+  --color-gold-100: #f9edc4;
+  --color-gold-200: #f3d88a;
+  --color-gold-300: #e8be4a;
+  --color-gold-400: #d4a528;
+  --color-gold-500: #b8891a;
+  --color-gold-600: #946c14;
+  --color-gold-700: #6e5010;
+  --color-gold-800: #4a360c;
+  --color-gold-900: #2a1f08;
+
+  --color-islamic-50: #f0f7f4;
+  --color-islamic-100: #d4ebe1;
+  --color-islamic-200: #a8d6c3;
+  --color-islamic-300: #6fb99c;
+  --color-islamic-400: #3d9b78;
+  --color-islamic-500: #1a7d5a;
+  --color-islamic-600: #146348;
+  --color-islamic-700: #104a36;
+  --color-islamic-800: #0c3226;
+  --color-islamic-900: #081f18;
+
+  --color-night-50: #f2f0f5;
+  --color-night-100: #e0dce8;
+  --color-night-200: #bfb8cf;
+  --color-night-300: #9a8fb3;
+  --color-night-400: #756896;
+  --color-night-500: #554878;
+  --color-night-600: #3d3460;
+  --color-night-700: #2a2448;
+  --color-night-800: #1a1630;
+  --color-night-900: #0e0c1c;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  box-sizing: border-box;
+  letter-spacing: 0.01em;
+}
+
+[dir="rtl"] * {
+  letter-spacing: 0;
+}
+
+html {
+  overflow: hidden;
+  overscroll-behavior: none;
+  height: 100vh;
+  width: 100vw;
+  background: #08080e;
+}
+
+body {
+  font-family: 'Noto Naskh Arabic', serif;
+  background: #08080e;
+  color: white;
+  overflow: hidden;
+  /* Prevent body itself from scrolling/dragging */
+  width: 100vw;
+  height: 100vh;
+  position: fixed;
+  /* Lock body position */
+  margin: 0;
+  padding: 0;
+  overscroll-behavior: none;
+  /* Disable browser bounce effects */
+  touch-action: manipulation;
+  /* Disable double-tap zoom */
+  -webkit-user-select: none;
+  /* Prevent text selection dragging the screen */
+  user-select: none;
+  -webkit-touch-callout: none;
+  /* Disable long-press menus */
+  -webkit-tap-highlight-color: transparent;
+  /* Remove the blue box on click */
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.light-theme html,
+.light-theme body {
+  background: #f8fbff;
+  color: #0f172a;
+}
+
+.light-theme {
+  --color-bg-primary: #f8fbff;
+  --color-bg-secondary: #ffffff;
+  --color-bg-tertiary: #f1f5f9;
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-tertiary: #94a3b8;
+  --color-border: #e2e8f0;
+}
+
+.dark-theme {
+  --color-bg-primary: #08080e;
+  --color-bg-secondary: #0f101a;
+  --color-bg-tertiary: #1a1b26;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #94a3b8;
+  --color-text-tertiary: #475569;
+  --color-border: rgba(255, 255, 255, 0.06);
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 6px rgba(212, 165, 40, 0.2);
+  }
+
+  50% {
+    box-shadow: 0 0 16px rgba(212, 165, 40, 0.5);
+  }
+}
+
+@keyframes countPulse {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.12);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.6;
+  }
+
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes growLeaf {
+  from {
+    transform: scale(0) rotate(-15deg);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+@keyframes ios-spinner {
+  0% { opacity: 1; }
+  100% { opacity: 0.1; }
+}
+
+.animate-ios-spinner {
+  animation: ios-spinner 1s linear infinite;
+}
+.animate-fade-in-scale {
+  animation: fadeInScale 0.3s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.5s ease-out forwards;
+}
+
+.animate-slide-down {
+  animation: slideDown 0.5s ease-out forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-count-pulse {
+  animation: countPulse 0.2s ease-out;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-ripple {
+  animation: ripple 0.6s ease-out forwards;
+}
+
+.animate-grow-leaf {
+  animation: growLeaf 0.5s ease-out forwards;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 20s linear infinite;
+}
+
+.animate-shimmer {
+  animation: shimmer 2s linear infinite;
+  background-size: 200% 100%;
+}
+
+/* Islamic geometric pattern — light theme (gold lines on white) */
+.islamic-pattern {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cpath fill='none' stroke='%23b8891a' stroke-width='0.7' stroke-opacity='0.2' d='M50 0 L61 18 L80 9 L71 28 L90 28 L75 42 L85 60 L65 55 L60 75 L50 62 L40 75 L35 55 L15 60 L25 42 L10 28 L29 28 L20 9 L39 18 Z M50 18 L58 30 L72 28 L64 40 L72 52 L58 50 L50 62 L42 50 L28 52 L36 40 L28 28 L42 30 Z M0 0 L10 18 L0 28 M100 0 L90 18 L100 28 M0 100 L10 82 L0 72 M100 100 L90 82 L100 72 M0 50 L10 42 M100 50 L90 42 M50 0 L50 18 M50 100 L50 82'/%3E%3C/svg%3E");
+  background-size: 100px 100px;
+}
+
+/* Islamic geometric pattern — dark theme (gold lines on dark) */
+.islamic-pattern-dark {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cpath fill='none' stroke='%23d4a528' stroke-width='0.7' stroke-opacity='0.08' d='M50 0 L61 18 L80 9 L71 28 L90 28 L75 42 L85 60 L65 55 L60 75 L50 62 L40 75 L35 55 L15 60 L25 42 L10 28 L29 28 L20 9 L39 18 Z M50 18 L58 30 L72 28 L64 40 L72 52 L58 50 L50 62 L42 50 L28 52 L36 40 L28 28 L42 30 Z M0 0 L10 18 L0 28 M100 0 L90 18 L100 28 M0 100 L10 82 L0 72 M100 100 L90 82 L100 72 M0 50 L10 42 M100 50 L90 42 M50 0 L50 18 M50 100 L50 82'/%3E%3C/svg%3E");
+  background-size: 100px 100px;
+}
+
+/* Navbar rounded top corners */
+.navbar-top-rounded {
+  border-radius: 24px 24px 0 0;
+}
+
+.geometric-bg {
+  background-image:
+    linear-gradient(30deg, rgba(212, 165, 40, 0.02) 12%, transparent 12.5%, transparent 87%, rgba(212, 165, 40, 0.02) 87.5%),
+    linear-gradient(150deg, rgba(212, 165, 40, 0.02) 12%, transparent 12.5%, transparent 87%, rgba(212, 165, 40, 0.02) 87.5%);
+  background-size: 40px 70px;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #e8be4a, #d4a528, #b8891a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Mushaf Layout Extensions ─── */
+.mushaf-paper {
+  background-color: #fffefb;
+  background-image: url('https://www.transparenttextures.com/patterns/natural-paper.png');
+}
+
+.mushaf-sepia {
+  background-color: #f4ecd8;
+  background-image: url('https://www.transparenttextures.com/patterns/natural-paper.png');
+  background-blend-mode: multiply;
+}
+
+.mushaf-dark {
+  background-color: #0b1629;
+  background-image: url('https://www.transparenttextures.com/patterns/dark-matter.png');
+}
+
+.verse-highlight {
+  animation: highlight-fade 2s ease-out forwards;
+}
+
+@keyframes highlight-fade {
+  0% {
+    background-color: rgba(212, 175, 55, 0.4);
+  }
+
+  100% {
+    background-color: transparent;
+  }
+}
+
+.mushaf-shadow {
+  box-shadow: 0 10px 50px -12px rgba(0, 0, 0, 0.25), 0 0 40px -10px rgba(212, 175, 55, 0.1);
+}
+
+.mushaf-spine {
+  position: relative;
+}
+
+.mushaf-spine::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 25px;
+  background: linear-gradient(to left, rgba(0, 0, 0, 0.05), transparent);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.mushaf-dark .mushaf-spine::after {
+  background: linear-gradient(to left, rgba(0, 0, 0, 0.2), transparent);
+}
+
+.quran-v2 {
+  font-family: 'QCFV2_Fallback', 'Amiri', serif;
+}
+
+@keyframes swipe-out-left {
+  0% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(-20%) scale(0.95);
+    opacity: 0;
+  }
+}
+
+@keyframes swipe-out-right {
+  0% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(20%) scale(0.95);
+    opacity: 0;
+  }
+}
+
+.animate-swipe-out-left {
+  animation: swipe-out-left 0.3s ease-in forwards;
+}
+
+.animate-swipe-out-right {
+  animation: swipe-out-right 0.3s ease-in forwards;
+}
+
+/* Safe Area Utilities */
+.pt-safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.pb-safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 20px);
+}
+
+.mb-safe-bottom {
+  margin-bottom: env(safe-area-inset-bottom, 20px);
+}
+
+.bottom-safe {
+  bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* UI Animations */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animation-slide-in {
+  animation: slideIn 0.3s ease-out forwards;
+}
+
+.animation-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}

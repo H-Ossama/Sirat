@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Widget Dark Mode Colors -->
+    <color name="widget_bg_start">#080F1E</color>
+    <color name="widget_bg_center">#101C35</color>
+    <color name="widget_bg_end">#0B1528</color>
+    <color name="widget_border">#4DD4A520</color>
+    <color name="widget_text_primary">#FFFFFF</color>
+    <color name="widget_text_secondary">#B0C4DE</color>
+    <color name="widget_text_accent">#D4A520</color>
+    <color name="widget_icon_tint">#D4A520</color>
+</resources>

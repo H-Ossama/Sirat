@@ -1,0 +1,353 @@
+import { useState, useEffect, Suspense, lazy } from 'react';
+import { HomeScreen } from './components/HomeScreen';
+import { HomeIcon, PlayIcon, BeadsIcon, SettingsIcon, HadithIcon } from './components/Icons';
+import { requestNotificationPermission, setupNotificationChannels, setupNotificationActions, listenToNotificationActions } from './services/notificationService';
+import { completeDeed } from './services/rewardsStore';
+import { App as CapApp } from '@capacitor/app';
+import { Haptics, NotificationType } from '@capacitor/haptics';
+import { StatusBar, Style } from '@capacitor/status-bar';
+import { BackHandlerProvider } from './components/BackHandlerContext';
+import { ThemeProvider, useTheme } from './components/ThemeContext';
+import { PrayerTimesProvider } from './components/PrayerTimesContext';
+import { AudioProvider } from './components/AudioContext';
+import { VideoPlayerProvider } from './components/VideoPlayerContext';
+import { MiniAudioPlayer } from './components/MiniAudioPlayer';
+import { MiniVideoPlayer } from './components/MiniVideoPlayer';
+
+const OnboardingScreen = lazy(() => import('./components/OnboardingScreen').then(m => ({ default: m.OnboardingScreen })));
+const AdhkarScreen = lazy(() => import('./components/AdhkarScreen').then(m => ({ default: m.AdhkarScreen })));
+const VideosScreen = lazy(() => import('./components/VideosScreen').then(m => ({ default: m.VideosScreen })));
+const QuranScreen = lazy(() => import('./components/QuranScreen').then(m => ({ default: m.QuranScreen })));
+const DuasScreen = lazy(() => import('./components/DuasScreen').then(m => ({ default: m.DuasScreen })));
+const TasbihScreen = lazy(() => import('./components/TasbihScreen').then(m => ({ default: m.TasbihScreen })));
+const CalendarScreen = lazy(() => import('./components/CalendarScreen').then(m => ({ default: m.CalendarScreen })));
+const QiblaScreen = lazy(() => import('./components/QiblaScreen').then(m => ({ default: m.QiblaScreen })));
+const GardenScreen = lazy(() => import('./components/GardenScreen').then(m => ({ default: m.GardenScreen })));
+const DeedsScreen = lazy(() => import('./components/DeedsScreen').then(m => ({ default: m.DeedsScreen })));
+const ZakatScreen = lazy(() => import('./components/ZakatScreen').then(m => ({ default: m.ZakatScreen })));
+const KhatmaScreen = lazy(() => import('./components/KhatmaScreen').then(m => ({ default: m.KhatmaScreen })));
+const LastTenScreen = lazy(() => import('./components/LastTenScreen').then(m => ({ default: m.LastTenScreen })));
+const SettingsScreen = lazy(() => import('./components/SettingsScreen').then(m => ({ default: m.SettingsScreen })));
+const HadithScreen = lazy(() => import('./components/HadithScreen').then(m => ({ default: m.HadithScreen })));
+const BadgesScreen = lazy(() => import('./components/BadgesScreen').then(m => ({ default: m.BadgesScreen })));
+const ProfileScreen = lazy(() => import('./components/ProfileScreen').then(m => ({ default: m.ProfileScreen })));
+
+type Screen = 'home' | 'adhkar' | 'videos' | 'quran' | 'hadith' | 'duas' | 'tasbih' | 'calendar' | 'qibla' | 'settings' | 'garden' | 'deeds' | 'zakat' | 'khatma' | 'lastTen' | 'badges' | 'profile';
+
+/* ─── Tab Bar ─── */
+function TabBar({ activeTab, onTabChange }: { activeTab: Screen; onTabChange: (tab: Screen) => void }) {
+    const { theme } = useTheme();
+
+    // Side tabs (2 on each side of center home)
+    const leftTabs: { id: Screen; label: string; icon: React.ReactNode }[] = [
+        { id: 'tasbih', label: 'التسبيح', icon: <BeadsIcon className="w-[20px] h-[20px]" /> },
+        { id: 'videos', label: 'الفيديوهات', icon: <PlayIcon className="w-[20px] h-[20px]" /> },
+    ];
+    const rightTabs: { id: Screen; label: string; icon: React.ReactNode }[] = [
+        { id: 'hadith', label: 'الحديث', icon: <HadithIcon className="w-[20px] h-[20px]" /> },
+        { id: 'settings', label: 'المزيد', icon: <SettingsIcon className="w-[20px] h-[20px]" /> },
+    ];
+
+    const renderTab = (tab: { id: Screen; label: string; icon: React.ReactNode }) => {
+        const isActive = activeTab === tab.id;
+        return (
+            <button
+                key={tab.id}
+                onClick={() => onTabChange(tab.id)}
+                className={`relative flex flex-col items-center gap-1.5 px-3 py-2 rounded-2xl transition-all duration-300 active:scale-90 ${isActive
+                    ? theme === 'light'
+                        ? 'text-gold-600'
+                        : 'text-gold-400'
+                    : theme === 'light'
+                        ? 'text-slate-400'
+                        : 'text-white/30'
+                    }`}
+            >
+                {/* Active background pill */}
+                {isActive && (
+                    <div className={`absolute inset-0 rounded-2xl transition-all duration-300 ${theme === 'light'
+                        ? 'bg-gold-50 border border-gold-100'
+                        : 'bg-gold-400/[0.08] border border-gold-400/[0.12]'
+                        }`} />
+                )}
+                <div className={`relative transition-all duration-300 ${isActive ? 'scale-110' : 'scale-100'}`}>
+                    <div className={`transition-all duration-300 ${isActive ? 'drop-shadow-[0_0_6px_rgba(212,165,40,0.5)]' : ''}`}>
+                        {tab.icon}
+                    </div>
+                </div>
+                <span className={`relative text-[10px] font-bold transition-all duration-300 ${isActive
+                    ? theme === 'light' ? 'text-gold-600' : 'text-gold-400'
+                    : theme === 'light' ? 'text-slate-400' : 'text-white/30'
+                    }`}>{tab.label}</span>
+            </button>
+        );
+    };
+
+    const isHomeActive = activeTab === 'home';
+
+    return (
+        <div className={`fixed bottom-0 left-0 right-0 z-40 transition-all duration-300 navbar-top-rounded ${theme === 'light'
+            ? 'bg-white/95 border-t border-slate-100 shadow-[0_-12px_40px_rgba(0,0,0,0.08)]'
+            : 'bg-[#070d1a]/97 border-t border-white/[0.06] shadow-[0_-12px_40px_rgba(0,0,0,0.7)]'
+            }`}
+            style={{ backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', paddingBottom: 'calc(10px + env(safe-area-inset-bottom, 0px))' }}
+        >
+            <div className="flex items-end justify-around px-3 pt-2 pb-1">
+                {/* Left tabs */}
+                {leftTabs.map(renderTab)}
+
+                {/* Center Home Button */}
+                <div className="flex flex-col items-center -mt-5">
+                    <button
+                        onClick={() => onTabChange('home')}
+                        className={`relative w-[58px] h-[58px] rounded-[20px] flex items-center justify-center transition-all duration-300 active:scale-90 shadow-lg ${isHomeActive
+                            ? 'bg-gradient-to-br from-gold-400 to-amber-500 shadow-gold-500/40 scale-105'
+                            : theme === 'light'
+                                ? 'bg-gradient-to-br from-gold-400 to-amber-500 shadow-gold-400/30'
+                                : 'bg-gradient-to-br from-gold-500/80 to-amber-600/80 shadow-gold-500/20'
+                            }`}
+                    >
+                        {/* Glow ring when active */}
+                        {isHomeActive && (
+                            <div className="absolute inset-0 rounded-[20px] ring-2 ring-gold-300/50 ring-offset-2 ring-offset-transparent animate-pulse" />
+                        )}
+                        <HomeIcon className="w-[24px] h-[24px] text-white drop-shadow-sm" />
+                    </button>
+                    <span className={`text-[10px] font-bold mt-2 transition-colors duration-300 ${isHomeActive
+                        ? theme === 'light' ? 'text-gold-600' : 'text-gold-400'
+                        : theme === 'light' ? 'text-slate-400' : 'text-white/30'
+                        }`}>الرئيسية</span>
+                </div>
+
+                {/* Right tabs */}
+                {rightTabs.map(renderTab)}
+            </div>
+        </div>
+    );
+}
+
+function AppWrapper() {
+    const { theme } = useTheme();
+    return (
+        <div className={`fixed inset-0 overflow-hidden ${theme === 'light' ? 'light-theme bg-[#f8fbff]' : 'dark-theme bg-[#08080e]'}`} dir="rtl">
+            <div className="h-full flex flex-col pt-safe-top">
+                <div className="flex-1 relative overflow-hidden">
+                    <AppContent />
+                </div>
+            </div>
+        </div>
+    );
+}
+
+/* ─── App Content ─── */
+function AppContent() {
+    const { theme } = useTheme();
+    const [onboardingDone, setOnboardingDone] = useState(() => !!localStorage.getItem('onboarding_complete'));
+    const [currentScreen, setCurrentScreen] = useState<Screen>('home');
+    const [tabBarScreen, setTabBarScreen] = useState<Screen>('home');
+    const [history, setHistory] = useState<Screen[]>(['home']);
+
+    const mainTabs: Screen[] = ['home', 'videos', 'tasbih', 'settings', 'hadith'];
+    const [deedsHighlightId, setDeedsHighlightId] = useState<number | undefined>(undefined);
+    const [quranAutoOpenSurah, setQuranAutoOpenSurah] = useState<number | null>(null);
+    const [quranAutoOpenPage, setQuranAutoOpenPage] = useState<number | null>(null);
+    const [videosInCategory, setVideosInCategory] = useState(false);
+    const [hadithInDetails, setHadithInDetails] = useState(false);
+
+    const handleMiniPlayerClick = (surahId: number) => {
+        setQuranAutoOpenSurah(surahId);
+        setQuranAutoOpenPage(null);
+        if (currentScreen !== 'quran') {
+            navigateTo('quran');
+        }
+    };
+
+    const navigateTo = (screen: Screen | string) => {
+        // Handle deeds:id pattern from HomeScreen challenge button
+        if (typeof screen === 'string' && screen.startsWith('deeds:')) {
+            const id = parseInt(screen.split(':')[1]);
+            setDeedsHighlightId(isNaN(id) ? undefined : id);
+            if ('deeds' === currentScreen) return;
+            setCurrentScreen('deeds');
+            setHistory(prev => [...prev, 'deeds']);
+            return;
+        }
+        const s = screen as Screen;
+        if (s === currentScreen) return;
+        setCurrentScreen(s);
+        setHistory(prev => [...prev, s]);
+        if (mainTabs.includes(s)) {
+            setTabBarScreen(s);
+        }
+    };
+
+    const goBack = () => {
+        if (history.length > 1) {
+            const newHistory = [...history];
+            newHistory.pop(); // remove current
+            const prev = newHistory[newHistory.length - 1];
+            setCurrentScreen(prev);
+            setHistory(newHistory);
+            if (mainTabs.includes(prev)) {
+                setTabBarScreen(prev);
+            }
+        } else {
+            setCurrentScreen('home');
+            setTabBarScreen('home');
+            setHistory(['home']);
+        }
+    };
+
+    const goHome = () => {
+        setCurrentScreen('home');
+        setTabBarScreen('home');
+        setHistory(['home']);
+    };
+
+    useEffect(() => {
+        if (currentScreen !== 'videos') setVideosInCategory(false);
+        if (currentScreen !== 'hadith') setHadithInDetails(false);
+    }, [currentScreen]);
+
+    useEffect(() => {
+        const init = async () => {
+            await requestNotificationPermission();
+            await setupNotificationChannels();
+            await setupNotificationActions();
+        };
+        init();
+
+        const unlisten = listenToNotificationActions((screen, actionId, extra) => {
+            if (actionId === 'mark_prayed') {
+                const prayer = extra?.prayer;
+                let deedId = 7;
+                let xp = 15;
+                if (prayer === 'Fajr') { deedId = 1; xp = 30; }
+                else if (prayer === 'Isha') { deedId = 4; xp = 25; }
+                completeDeed(deedId, xp);
+                Haptics.notification({ type: NotificationType.Success });
+                navigateTo('home');
+            } else if (actionId === 'alhamdulillah') {
+                completeDeed(52, 15);
+                Haptics.notification({ type: NotificationType.Success });
+                navigateTo('home');
+            } else if (actionId === 'open_app' || actionId === 'open_adhkar') {
+                navigateTo('adhkar');
+            } else if (actionId === 'open_quran') {
+                navigateTo('quran');
+            } else if (actionId === 'open_tasbih') {
+                navigateTo('tasbih');
+            } else if (actionId === 'tap') {
+                if (screen) {
+                    navigateTo(screen as Screen);
+                } else {
+                    navigateTo('home');
+                }
+            } else if (screen) {
+                navigateTo(screen as Screen);
+            }
+        });
+
+        const urlListener = CapApp.addListener('appUrlOpen', (data) => {
+            if (data.url.includes('me3raj://app/')) {
+                const path = data.url.split('me3raj://app/')[1];
+                if (path && ['home', 'adhkar', 'videos', 'quran', 'hadith', 'duas', 'tasbih', 'calendar', 'qibla', 'settings', 'garden', 'deeds', 'zakat', 'khatma', 'lastTen', 'badges', 'profile'].includes(path)) {
+                    navigateTo(path as Screen);
+                }
+            }
+        });
+
+        return () => {
+            if (typeof unlisten === 'function') unlisten();
+            urlListener.then(l => l.remove());
+        };
+    }, [currentScreen]); // Re-bind listener when currentScreen changes to have correct closure value
+
+    useEffect(() => {
+        const updateStatus = async () => {
+            try {
+                await StatusBar.show();
+                await StatusBar.setOverlaysWebView({ overlay: true });
+                await StatusBar.setStyle({
+                    style: theme === 'light' ? Style.Dark : Style.Light
+                });
+            } catch (e) {
+                console.warn('StatusBar error', e);
+            }
+        };
+        // Small delay to ensure native layer is ready
+        const timer = setTimeout(updateStatus, 100);
+        return () => clearTimeout(timer);
+    }, [theme]);
+
+    const renderScreen = () => {
+        switch (currentScreen) {
+            case 'home': return <HomeScreen onNavigate={(s) => navigateTo(s as Screen)} />;
+            case 'adhkar': return <AdhkarScreen onBack={goBack} />;
+            case 'videos': return <VideosScreen onBack={goBack} onCategoryViewChange={setVideosInCategory} />;
+            case 'quran': return <QuranScreen onBack={goBack} autoOpenSurahId={quranAutoOpenSurah} autoOpenPage={quranAutoOpenPage} onAutoOpenConsumed={() => { setQuranAutoOpenSurah(null); setQuranAutoOpenPage(null); }} />;
+            case 'duas': return <DuasScreen onBack={goBack} />;
+            case 'tasbih': return <TasbihScreen onBack={goBack} />;
+            case 'calendar': return <CalendarScreen onBack={goBack} />;
+            case 'qibla': return <QiblaScreen onBack={goBack} />;
+            case 'settings': return <SettingsScreen onBack={goBack} onNavigate={(s) => navigateTo(s as Screen)} />;
+            case 'garden': return <GardenScreen onBack={goBack} />;
+            case 'deeds': return <DeedsScreen onBack={goBack} highlightDeedId={deedsHighlightId} onNavigate={(s) => navigateTo(s as Screen)} />;
+            case 'zakat': return <ZakatScreen onBack={goBack} />;
+            case 'khatma': return <KhatmaScreen onBack={goBack} onNavigate={(s, surahId, page) => { if (surahId) setQuranAutoOpenSurah(surahId); if (page) setQuranAutoOpenPage(page); navigateTo(s); }} />;
+            case 'lastTen': return <LastTenScreen onBack={goBack} />;
+            case 'hadith': return <HadithScreen onBack={goBack} onDetailViewChange={setHadithInDetails} />;
+            case 'badges': return <BadgesScreen onBack={goBack} />;
+            case 'profile': return <ProfileScreen onBack={goBack} onNavigate={(s) => navigateTo(s as Screen)} />;
+            default: return <HomeScreen onNavigate={(s) => navigateTo(s as Screen)} />;
+        }
+    };
+
+    if (!onboardingDone) {
+        return (
+            <Suspense fallback={null}>
+                <OnboardingScreen onComplete={() => setOnboardingDone(true)} />
+            </Suspense>
+        );
+    }
+
+    const hideTabBar = currentScreen === 'quran'
+        || (currentScreen === 'videos' && videosInCategory)
+        || (currentScreen === 'hadith' && hadithInDetails);
+
+    return (
+        <BackHandlerProvider onDefaultBack={() => {
+            if (currentScreen !== 'home') {
+                goBack();
+            } else {
+                CapApp.exitApp();
+            }
+        }}>
+            <Suspense fallback={<div className="h-full w-full" />}>
+                {renderScreen()}
+            </Suspense>
+            {currentScreen !== 'quran' && (
+                <MiniAudioPlayer hasTabBar={!hideTabBar} onNavigate={handleMiniPlayerClick} />
+            )}
+            <MiniVideoPlayer hasTabBar={!hideTabBar} />
+            {!hideTabBar && (
+                <TabBar activeTab={tabBarScreen} onTabChange={navigateTo} />
+            )}
+        </BackHandlerProvider>
+    );
+}
+
+/* ─── Main App ─── */
+export function App() {
+    return (
+        <ThemeProvider>
+            <PrayerTimesProvider>
+                <AudioProvider>
+                    <VideoPlayerProvider>
+                        <AppWrapper />
+                    </VideoPlayerProvider>
+                </AudioProvider>
+            </PrayerTimesProvider>
+        </ThemeProvider>
+    );
+}

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_athkar_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background_premium"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_centerInParent="true">
+
+        <TextView
+            android:id="@+id/athkar_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="أذكار اليوم"
+            android:textColor="@color/widget_text_accent"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/athkar_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="أذكار الصباح: ☀️"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/athkar_msg"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="اضغط للقراءة"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="12sp" />
+
+    </LinearLayout>
+</RelativeLayout>
