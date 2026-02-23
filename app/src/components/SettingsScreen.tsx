@@ -5,6 +5,7 @@ import { getNotificationSettings, NotificationSettings, saveNotificationSettings
 import { CALCULATION_METHODS } from '../services/prayerService';
 import { MapPinIcon, ZapIcon, ChevronLeftIcon } from './Icons';
 import { LocationSelector } from './LocationSelector';
+import { logInteraction } from '../services/activityLogStore';
 
 interface SettingsScreenProps {
     onBack: () => void;
@@ -40,6 +41,13 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
         setSettings(newSettings);
         saveNotificationSettings(newSettings);
         if (prayerData) scheduleAllNotifications(prayerData.prayers, newSettings);
+        logInteraction({
+            type: 'settings_toggle_notification',
+            category: 'settings',
+            title: newSettings[key] ? 'تفعيل إشعار' : 'تعطيل إشعار',
+            details: String(key),
+            meta: { key: String(key), enabled: !!newSettings[key] },
+        });
     };
 
 
@@ -48,12 +56,26 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
         const newAdj = hijriAdj + delta;
         setHijriAdj(newAdj);
         updateAdjustment(newAdj);
+        logInteraction({
+            type: 'settings_hijri_adjust',
+            category: 'settings',
+            title: 'تعديل التاريخ الهجري',
+            details: `الإزاحة ${newAdj > 0 ? `+${newAdj}` : newAdj}`,
+            meta: { adjustment: newAdj },
+        });
     };
 
     const toggleVideoMiniPlayer = () => {
         setVideoMiniPlayerEnabled(prev => {
             const next = !prev;
             localStorage.setItem('video_mini_player_enabled', String(next));
+            logInteraction({
+                type: 'settings_toggle_video_mini_player',
+                category: 'settings',
+                title: next ? 'تفعيل المشغل المصغر' : 'تعطيل المشغل المصغر',
+                details: 'مشغل الفيديو العائم',
+                meta: { enabled: next },
+            });
             return next;
         });
     };
@@ -228,13 +250,13 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
                             <div className={card}>
                                 <div className={`px-4 py-3 ${rowDiv}`} dir="rtl">
                                     <p className={`text-[11px] font-bold mb-1.5 ${D ? 'text-white/40' : 'text-slate-400'}`}>طريقة الحساب</p>
-                                    <select value={methodId} onChange={e => changeMethod(e.target.value)} className={`w-full bg-transparent outline-none text-[14px] font-amiri font-bold appearance-none cursor-pointer ${D ? 'text-white/90' : 'text-slate-800'}`}>
+                                    <select value={methodId} onChange={e => { changeMethod(e.target.value); logInteraction({ type: 'settings_change_prayer_method', category: 'settings', title: 'تغيير طريقة حساب الصلاة', details: e.target.value, meta: { methodId: e.target.value } }); }} className={`w-full bg-transparent outline-none text-[14px] font-amiri font-bold appearance-none cursor-pointer ${D ? 'text-white/90' : 'text-slate-800'}`}>
                                         {CALCULATION_METHODS.map(m => <option key={m.id} value={m.id} className={D ? 'bg-[#0b1929] text-white' : 'bg-white text-slate-800'}>{m.name}</option>)}
                                     </select>
                                 </div>
                                 <div className="px-4 py-3" dir="rtl">
                                     <p className={`text-[11px] font-bold mb-1.5 ${D ? 'text-white/40' : 'text-slate-400'}`}>المذهب الفقهي</p>
-                                    <select value={school} onChange={e => changeSchool(parseInt(e.target.value))} className={`w-full bg-transparent outline-none text-[14px] font-amiri font-bold appearance-none cursor-pointer ${D ? 'text-white/90' : 'text-slate-800'}`}>
+                                    <select value={school} onChange={e => { const nextSchool = parseInt(e.target.value); changeSchool(nextSchool); logInteraction({ type: 'settings_change_fiqh_school', category: 'settings', title: 'تغيير المذهب الفقهي', details: nextSchool === 1 ? 'الحنفي' : 'الجمهور', meta: { school: nextSchool } }); }} className={`w-full bg-transparent outline-none text-[14px] font-amiri font-bold appearance-none cursor-pointer ${D ? 'text-white/90' : 'text-slate-800'}`}>
                                         <option value="0" className={D ? 'bg-[#0b1929] text-white' : 'bg-white text-slate-800'}>الشافعي، المالكي، الحنبلي</option>
                                         <option value="1" className={D ? 'bg-[#0b1929] text-white' : 'bg-white text-slate-800'}>الحنفي (تأخير العصر)</option>
                                     </select>
@@ -265,7 +287,7 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
                                         </div>
                                         <div className="flex items-center gap-4">
                                             <button
-                                                onClick={() => updatePrayerOffset(p.id, -1)}
+                                                onClick={() => { updatePrayerOffset(p.id, -1); logInteraction({ type: 'settings_prayer_offset', category: 'settings', title: 'تعديل وقت الصلاة', details: `${p.name} -1 دقيقة`, meta: { prayer: p.id, delta: -1 } }); }}
                                                 className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold active:scale-95 transition-all ${D ? 'bg-white/[0.06] text-white/70' : 'bg-slate-100 text-slate-600'}`}
                                             >
                                                 −
@@ -274,7 +296,7 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
                                                 {prayerOffsets[p.id] || 0}
                                             </span>
                                             <button
-                                                onClick={() => updatePrayerOffset(p.id, 1)}
+                                                onClick={() => { updatePrayerOffset(p.id, 1); logInteraction({ type: 'settings_prayer_offset', category: 'settings', title: 'تعديل وقت الصلاة', details: `${p.name} +1 دقيقة`, meta: { prayer: p.id, delta: 1 } }); }}
                                                 className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold active:scale-95 transition-all ${D ? 'bg-white/[0.06] text-white/70' : 'bg-slate-100 text-slate-600'}`}
                                             >
                                                 +
@@ -333,7 +355,7 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
                                         </div>
                                         <span className={lbl}>الوضع {D ? 'المظلم' : 'الفاتح'}</span>
                                     </div>
-                                    <ToggleSwitch on={D} onToggle={toggleTheme} />
+                                    <ToggleSwitch on={D} onToggle={() => { toggleTheme(); logInteraction({ type: 'settings_toggle_theme', category: 'settings', title: D ? 'تفعيل الوضع الفاتح' : 'تفعيل الوضع المظلم', details: 'تغيير مظهر التطبيق', meta: { toDark: !D } }); }} />
                                 </div>
                                 <div className={`flex items-center justify-between px-4 py-3.5 ${rowDiv}`} dir="rtl">
                                     <div className="flex items-center gap-3">

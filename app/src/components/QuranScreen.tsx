@@ -9,6 +9,7 @@ import { Clipboard } from '@capacitor/clipboard';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { toPng } from 'html-to-image';
 import { Haptics, NotificationType } from '@capacitor/haptics';
+import { logInteraction } from '../services/activityLogStore';
 
 interface QuranScreenProps {
     onBack: () => void;
@@ -220,12 +221,26 @@ export function QuranScreen({ onBack, autoOpenSurahId, autoOpenPage, onAutoOpenC
             localStorage.removeItem('quran_saved_verse');
             setSavedSurah(null);
             setSavedVerse(null);
+            logInteraction({
+                type: 'quran_unsave_verse',
+                category: 'quran',
+                title: 'إزالة علامة آية',
+                details: `سورة ${selectedSurah?.name || ''} - آية ${verse.numberInSurah}`,
+                meta: { surahNumber: selectedSurah?.number || 0, verseNumber: verse.numberInSurah },
+            });
         } else {
             if (selectedSurah) {
                 localStorage.setItem('quran_saved_surah', selectedSurah.number.toString());
                 localStorage.setItem('quran_saved_verse', verse.numberInSurah.toString());
                 setSavedSurah(selectedSurah.number);
                 setSavedVerse(verse.numberInSurah);
+                logInteraction({
+                    type: 'quran_save_verse',
+                    category: 'quran',
+                    title: 'حفظ آية',
+                    details: `سورة ${selectedSurah.name} - آية ${verse.numberInSurah}`,
+                    meta: { surahNumber: selectedSurah.number, verseNumber: verse.numberInSurah },
+                });
             }
         }
     };
@@ -289,12 +304,26 @@ export function QuranScreen({ onBack, autoOpenSurahId, autoOpenPage, onAutoOpenC
 
     const handleSurahClick = async (surah: Surah) => {
         setSelectedSurah(surah);
+        logInteraction({
+            type: 'quran_open_surah',
+            category: 'quran',
+            title: 'فتح سورة',
+            details: `سورة ${surah.name}`,
+            meta: { surahNumber: surah.number },
+        });
         await loadVerses(surah.number, currentReciter.islamicNetworkId);
     };
 
     const handleReciterChange = async (reciter: Reciter) => {
         setCurrentReciter(reciter);
         localStorage.setItem('quran_saved_reciter', reciter.islamicNetworkId);
+        logInteraction({
+            type: 'quran_change_reciter',
+            category: 'quran',
+            title: 'تغيير القارئ',
+            details: reciter.arabicName,
+            meta: { reciterId: reciter.islamicNetworkId },
+        });
         setShowReciterMenu(false);
         if (selectedSurah) {
             if (audioRef.current) { audioRef.current.pause(); setPlayingVerse(null); setIsPlaying(false); setIsPaused(false); }
@@ -306,10 +335,24 @@ export function QuranScreen({ onBack, autoOpenSurahId, autoOpenPage, onAutoOpenC
     const handleNextPage = () => {
         if (currentPageIndex < pages.length - 1) {
             setCurrentPageIndex(currentPageIndex + 1);
+            logInteraction({
+                type: 'quran_next_page',
+                category: 'quran',
+                title: 'الانتقال للصفحة التالية',
+                details: `سورة ${selectedSurah?.name || ''}`,
+                meta: { currentPageIndex, nextPageIndex: currentPageIndex + 1 },
+            });
         } else if (selectedSurah && selectedSurah.number < 114) {
             const nextSurah = surahs.find(s => s.number === selectedSurah.number + 1);
             if (nextSurah) {
                 setSelectedSurah(nextSurah);
+                logInteraction({
+                    type: 'quran_auto_next_surah',
+                    category: 'quran',
+                    title: 'الانتقال للسورة التالية',
+                    details: `سورة ${nextSurah.name}`,
+                    meta: { surahNumber: nextSurah.number },
+                });
                 loadVerses(nextSurah.number, currentReciter.islamicNetworkId);
             }
         }
@@ -318,10 +361,24 @@ export function QuranScreen({ onBack, autoOpenSurahId, autoOpenPage, onAutoOpenC
     const handlePrevPage = () => {
         if (currentPageIndex > 0) {
             setCurrentPageIndex(currentPageIndex - 1);
+            logInteraction({
+                type: 'quran_prev_page',
+                category: 'quran',
+                title: 'الانتقال للصفحة السابقة',
+                details: `سورة ${selectedSurah?.name || ''}`,
+                meta: { currentPageIndex, prevPageIndex: currentPageIndex - 1 },
+            });
         } else if (selectedSurah && selectedSurah.number > 1) {
             const prevSurah = surahs.find(s => s.number === selectedSurah.number - 1);
             if (prevSurah) {
                 setSelectedSurah(prevSurah);
+                logInteraction({
+                    type: 'quran_prev_surah',
+                    category: 'quran',
+                    title: 'الانتقال للسورة السابقة',
+                    details: `سورة ${prevSurah.name}`,
+                    meta: { surahNumber: prevSurah.number },
+                });
                 setLoadingVerses(true);
                 fetchVerses(prevSurah.number, currentReciter.islamicNetworkId).then(data => {
                     setVerses(data);
@@ -349,6 +406,13 @@ export function QuranScreen({ onBack, autoOpenSurahId, autoOpenPage, onAutoOpenC
 
         const a = new Audio(`https://cdn.islamic.network/quran/audio/128/${currentReciter.islamicNetworkId}/${verse.number}.mp3`);
         audioRef.current = a; a.play().catch(e => console.error(e));
+        logInteraction({
+            type: 'quran_play_verse',
+            category: 'quran',
+            title: 'تشغيل آية',
+            details: `سورة ${verse.surahName} - آية ${verse.numberInSurah}`,
+            meta: { verseGlobalNumber: verse.number, verseNumberInSurah: verse.numberInSurah, autoNext },
+        });
         a.onended = () => {
             if (autoNext) {
                 const currentIndex = verses.findIndex(v => v.number === verse.number);
@@ -381,8 +445,22 @@ export function QuranScreen({ onBack, autoOpenSurahId, autoOpenPage, onAutoOpenC
         if (globalCurrentSurah?.number === selectedSurah.number) {
             if (globalIsPlaying && !globalIsPaused) {
                 globalPauseAudio();
+                logInteraction({
+                    type: 'quran_pause_surah',
+                    category: 'quran',
+                    title: 'إيقاف تلاوة السورة',
+                    details: `سورة ${selectedSurah.name}`,
+                    meta: { surahNumber: selectedSurah.number },
+                });
             } else {
                 globalResumeAudio();
+                logInteraction({
+                    type: 'quran_resume_surah',
+                    category: 'quran',
+                    title: 'استئناف تلاوة السورة',
+                    details: `سورة ${selectedSurah.name}`,
+                    meta: { surahNumber: selectedSurah.number },
+                });
             }
         } else {
             // Stop local verse audio if playing
@@ -392,6 +470,13 @@ export function QuranScreen({ onBack, autoOpenSurahId, autoOpenPage, onAutoOpenC
                 setIsPlaying(false);
             }
             globalPlaySurah(selectedSurah, currentReciter);
+            logInteraction({
+                type: 'quran_play_surah',
+                category: 'quran',
+                title: 'تشغيل تلاوة السورة',
+                details: `سورة ${selectedSurah.name} — ${currentReciter.arabicName}`,
+                meta: { surahNumber: selectedSurah.number, reciterId: currentReciter.islamicNetworkId },
+            });
         }
     };
 
@@ -462,7 +547,16 @@ export function QuranScreen({ onBack, autoOpenSurahId, autoOpenPage, onAutoOpenC
                             isSaved={savedSurah === selectedSurah?.number && savedVerse === v.numberInSurah}
                             onToggleSave={() => toggleSaveVerse(v)}
                             isHighlighted={highlightedVerse === v.numberInSurah}
-                            onOpenTafsir={(verse, source) => setFullScreenTafsir({ verse, source })}
+                            onOpenTafsir={(verse, source) => {
+                                logInteraction({
+                                    type: 'quran_open_tafsir',
+                                    category: 'quran',
+                                    title: 'فتح تفسير آية',
+                                    details: `سورة ${verse.surahName} - آية ${verse.numberInSurah}`,
+                                    meta: { source, verseNumberInSurah: verse.numberInSurah },
+                                });
+                                setFullScreenTafsir({ verse, source });
+                            }}
                         />
                     ))}
                 </div>
@@ -534,6 +628,13 @@ export function QuranScreen({ onBack, autoOpenSurahId, autoOpenPage, onAutoOpenC
                     <button onClick={async () => {
                         const s = surahs.find(x => x.number === savedSurah);
                         if (s) { 
+                            logInteraction({
+                                type: 'quran_resume_saved_position',
+                                category: 'quran',
+                                title: 'مواصلة القراءة',
+                                details: `سورة ${s.name} - آية ${savedVerse ?? 0}`,
+                                meta: { surahNumber: s.number, verseNumber: savedVerse ?? 0 },
+                            });
                             setSelectedSurah(s); 
                             await loadVerses(s.number, currentReciter.islamicNetworkId); 
                             setTimeout(() => {
@@ -593,6 +694,13 @@ function VerseCardItem({ verse, isDark, isPlaying, isPaused, onPlay, isSaved, on
         const text = `﴿ ${verse.text} ﴾\n\n[سورة ${verse.surahName} - آية ${verse.numberInSurah}]\n\n(تم النسخ من تطبيق Sirat 🌙)`;
         await Clipboard.write({ string: text });
         Haptics.notification({ type: NotificationType.Success });
+        logInteraction({
+            type: 'quran_copy_verse',
+            category: 'quran',
+            title: 'نسخ آية',
+            details: `سورة ${verse.surahName} - آية ${verse.numberInSurah}`,
+            meta: { verseNumberInSurah: verse.numberInSurah },
+        });
     };
 
     const handleShare = async () => {
@@ -628,6 +736,13 @@ function VerseCardItem({ verse, isDark, isPlaying, isPaused, onPlay, isSaved, on
         } finally {
             setIsSharing(false);
         }
+        logInteraction({
+            type: 'quran_share_verse',
+            category: 'quran',
+            title: 'مشاركة آية',
+            details: `سورة ${verse.surahName} - آية ${verse.numberInSurah}`,
+            meta: { verseNumberInSurah: verse.numberInSurah },
+        });
     };
 
     return (

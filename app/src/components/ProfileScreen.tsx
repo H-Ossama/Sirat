@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ChevronLeftIcon, FlameIcon, ZapIcon, AwardIcon, SettingsIcon, SparkleIcon } from './Icons';
 import { useTheme } from './ThemeContext';
 import { getRewardsState, getAllBadges, saveUserName } from '../services/rewardsStore';
+import { getSavedVideos, getLikedVideos, type VideoMeta } from '../services/videoInteractionsStore';
+import { useVideoPlayer } from './VideoPlayerContext';
+import type { FetchedVideoItem } from '../services/youtubeContentService';
 import { BadgeIconComponent } from './BadgesScreen';
 
 interface ProfileScreenProps {
@@ -14,6 +17,29 @@ export function ProfileScreen({ onBack, onNavigate }: ProfileScreenProps) {
     const [state, setState] = useState(() => getRewardsState());
     const badges = getAllBadges(state);
     const unlockedBadges = badges.filter(b => b.unlocked);
+
+    const savedVideos = useMemo(() => getSavedVideos(), []);
+    const likedVideos = useMemo(() => getLikedVideos(), []);
+
+    const { openVideo } = useVideoPlayer();
+
+    const openSavedVideo = (meta: VideoMeta) => {
+        const item: FetchedVideoItem = {
+            id: meta.videoId,
+            videoId: meta.videoId,
+            title: meta.title,
+            description: '',
+            channel: meta.channel,
+            views: meta.views,
+            thumbnail: meta.thumbnail,
+            url: `https://www.youtube.com/watch?v=${meta.videoId}`,
+            embedUrl: `https://www.youtube.com/embed/${meta.videoId}`,
+            durationSeconds: 0,
+            durationText: meta.durationText,
+            isReel: false,
+        };
+        openVideo(item);
+    };
 
     const [editingName, setEditingName] = useState(false);
     const [nameInput, setNameInput] = useState(state.userName);
@@ -235,6 +261,73 @@ export function ProfileScreen({ onBack, onNavigate }: ProfileScreenProps) {
                         </div>
                     )}
                 </div>
+
+                {/* Saved & Liked Videos */}
+                {(savedVideos.length > 0 || likedVideos.length > 0) && (
+                    <div className={`rounded-[2rem] p-6 border mb-6 ${isDark ? 'bg-[#111e35]/50 border-white/[0.05]' : 'bg-white border-slate-100 shadow-sm'}`}>
+                        {savedVideos.length > 0 && (
+                            <>
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDark ? 'bg-gold-500/10' : 'bg-gold-50'}`}>
+                                        <svg className={`w-5 h-5 ${isDark ? 'text-gold-400' : 'text-gold-500'}`} fill="currentColor" viewBox="0 0 24 24"><path d="M5 3a2 2 0 00-2 2v16l7-3 7 3V5a2 2 0 00-2-2H5z" /></svg>
+                                    </div>
+                                    <h3 className={`text-lg font-amiri font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>المحفوظة</h3>
+                                    <span className={`mr-auto text-xs font-bold px-2.5 py-1 rounded-lg ${isDark ? 'bg-white/5 text-white/50' : 'bg-slate-100 text-slate-500'}`}>{savedVideos.length}</span>
+                                </div>
+                                <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
+                                    {savedVideos.map(v => (
+                                        <button
+                                            key={v.meta.videoId}
+                                            onClick={() => openSavedVideo(v.meta)}
+                                            className={`flex-shrink-0 w-36 rounded-2xl overflow-hidden border transition-all active:scale-95 ${isDark ? 'bg-black/20 border-white/5' : 'bg-slate-50 border-slate-100'}`}
+                                        >
+                                            <img
+                                                src={`https://i.ytimg.com/vi/${v.meta.videoId}/mqdefault.jpg`}
+                                                className="w-full aspect-video object-cover"
+                                                alt={v.meta.title}
+                                                loading="lazy"
+                                            />
+                                            <p className={`text-[11px] font-bold p-2 line-clamp-2 text-right leading-tight ${isDark ? 'text-white/70' : 'text-slate-600'}`} dir="rtl">{v.meta.title}</p>
+                                        </button>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+
+                        {savedVideos.length > 0 && likedVideos.length > 0 && (
+                            <div className={`my-5 border-t border-dashed ${isDark ? 'border-white/10' : 'border-slate-200'}`} />
+                        )}
+
+                        {likedVideos.length > 0 && (
+                            <>
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDark ? 'bg-red-500/10' : 'bg-red-50'}`}>
+                                        <svg className={`w-5 h-5 ${isDark ? 'text-red-400' : 'text-red-500'}`} fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
+                                    </div>
+                                    <h3 className={`text-lg font-amiri font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>الإعجابات</h3>
+                                    <span className={`mr-auto text-xs font-bold px-2.5 py-1 rounded-lg ${isDark ? 'bg-white/5 text-white/50' : 'bg-slate-100 text-slate-500'}`}>{likedVideos.length}</span>
+                                </div>
+                                <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
+                                    {likedVideos.map(v => (
+                                        <button
+                                            key={v.meta.videoId}
+                                            onClick={() => openSavedVideo(v.meta)}
+                                            className={`flex-shrink-0 w-36 rounded-2xl overflow-hidden border transition-all active:scale-95 ${isDark ? 'bg-black/20 border-white/5' : 'bg-slate-50 border-slate-100'}`}
+                                        >
+                                            <img
+                                                src={`https://i.ytimg.com/vi/${v.meta.videoId}/mqdefault.jpg`}
+                                                className="w-full aspect-video object-cover"
+                                                alt={v.meta.title}
+                                                loading="lazy"
+                                            />
+                                            <p className={`text-[11px] font-bold p-2 line-clamp-2 text-right leading-tight ${isDark ? 'text-white/70' : 'text-slate-600'}`} dir="rtl">{v.meta.title}</p>
+                                        </button>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
 
                 {/* Longest Streak */}
                 {state.longestStreak > 0 && (

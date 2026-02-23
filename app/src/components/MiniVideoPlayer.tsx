@@ -8,9 +8,17 @@ export function MiniVideoPlayer({ hasTabBar }: { hasTabBar: boolean }) {
     const { currentVideo, iframeSrc, isPlaying, viewMode, togglePlayPause, seekBy, closeVideo } = useVideoPlayer();
 
     // Load saved position
-    const [position, setPosition] = useState(() => {
+    const [position, setPosition] = useState<{ x: number; y: number }>(() => {
         const saved = localStorage.getItem('mini-player-pos');
-        return saved ? JSON.parse(saved) : { x: -1000, y: -1000 };
+        if (!saved) return { x: -1000, y: -1000 };
+        try {
+            const parsed = JSON.parse(saved);
+            if (typeof parsed?.x === 'number' && typeof parsed?.y === 'number') {
+                return { x: parsed.x, y: parsed.y };
+            }
+        } catch {
+        }
+        return { x: -1000, y: -1000 };
     });
     const [isDragging, setIsDragging] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);

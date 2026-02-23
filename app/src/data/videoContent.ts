@@ -3,6 +3,8 @@ export interface VideoCategory {
     title: string;
     subtitle: string;
     searchQueries: string[];
+    /** Single optimised query used when fetching Shorts/Reels (saves API quota) */
+    reelsQuery: string;
 }
 
 export const videoCategories: VideoCategory[] = [
@@ -15,7 +17,8 @@ export const videoCategories: VideoCategory[] = [
             'قصص الصحابة مؤثرة',
             'السيرة النبوية كاملة',
             'مواقف من سيرة النبي ﷺ'
-        ]
+        ],
+        reelsQuery: 'موقف من السيرة النبوية قصير',
     },
     {
         id: 'dialogues-doubts',
@@ -26,7 +29,8 @@ export const videoCategories: VideoCategory[] = [
             'الشبهات والرد عليها',
             'الرد على الإلحاد بالعقل',
             'الأسئلة العقدية الشائعة'
-        ]
+        ],
+        reelsQuery: 'رد ديني سريع على سؤال',
     },
     {
         id: 'repentance-tazkiyah',
@@ -37,7 +41,8 @@ export const videoCategories: VideoCategory[] = [
             'ترك المعاصي نهائيا',
             'تزكية النفس وتطوير الذات الإسلامي',
             'قصص التوبة المؤثرة'
-        ]
+        ],
+        reelsQuery: 'كلام يدفعك للتوبة قصير',
     },
     {
         id: 'ibadat-fiqh',
@@ -49,7 +54,8 @@ export const videoCategories: VideoCategory[] = [
             'أحكام الصيام للمسلم',
             'الطهارة والوضوء الصحيح',
             'شرح الزكاة للمبتدئين'
-        ]
+        ],
+        reelsQuery: 'حكم شرعي قصير فقه',
     },
     {
         id: 'quran-tafsir',
@@ -60,7 +66,8 @@ export const videoCategories: VideoCategory[] = [
             'تدبر الآيات',
             'أسباب النزول شرح',
             'التفسير الموضوعي للقرآن'
-        ]
+        ],
+        reelsQuery: 'تفسير آية من القرآن قصير',
     },
     {
         id: 'muslim-life-skills',
@@ -71,7 +78,8 @@ export const videoCategories: VideoCategory[] = [
             'الانضباط والصلاة',
             'الصبر على الابتلاء',
             'الالتزام بالطاعات يوميا'
-        ]
+        ],
+        reelsQuery: 'نصيحة إسلامية يومية قصيرة',
     },
     {
         id: 'muamalat-finance',
@@ -82,7 +90,8 @@ export const videoCategories: VideoCategory[] = [
             'أحكام البيع والشراء في الإسلام',
             'الربا والمعاملات البنكية',
             'فقه الديون والعقود'
-        ]
+        ],
+        reelsQuery: 'حلال وحرام في المال قصير',
     },
     {
         id: 'civilization-scholars',
@@ -93,6 +102,7 @@ export const videoCategories: VideoCategory[] = [
             'قصص معاصرة ملهمة',
             'نماذج شبابية إسلامية ناجحة',
             'الإعجاز العلمي في القرآن'
-        ]
+        ],
+        reelsQuery: 'فائدة إسلامية قصيرة علماء',
     }
 ];

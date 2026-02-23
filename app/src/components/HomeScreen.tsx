@@ -15,6 +15,7 @@ import { Clipboard } from '@capacitor/clipboard';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { toPng } from 'html-to-image';
 import { Haptics, NotificationType, ImpactStyle } from '@capacitor/haptics';
+import { logInteraction } from '../services/activityLogStore';
 
 interface HomeScreenProps {
     onNavigate: (screen: string) => void;
@@ -85,6 +86,13 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
         const text = `« ${todayHadith.arabic} »\n\nرواه ${todayHadith.source}\n\n(تم النسخ من تطبيق Sirat 🌙)`;
         await Clipboard.write({ string: text });
         Haptics.notification({ type: NotificationType.Success });
+        logInteraction({
+            type: 'home_copy_daily_hadith',
+            category: 'hadith',
+            title: 'نسخ حديث اليوم',
+            details: todayHadith.source,
+            meta: { hadithIndex: todayHadithIndex },
+        });
     };
 
     const handleShareHadith = async () => {
@@ -119,15 +127,36 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
         } finally {
             setIsSharingHadith(false);
         }
+        logInteraction({
+            type: 'home_share_daily_hadith',
+            category: 'hadith',
+            title: 'مشاركة حديث اليوم',
+            details: todayHadith.source,
+            meta: { hadithIndex: todayHadithIndex },
+        });
     };
 
     const handleToggleSaveHadith = () => {
         if (savedHadithIndex === todayHadithIndex) {
             setSavedHadithIndex(null);
             localStorage.removeItem('saved_hadith_index');
+            logInteraction({
+                type: 'home_unsave_daily_hadith',
+                category: 'hadith',
+                title: 'إزالة حفظ حديث اليوم',
+                details: todayHadith.source,
+                meta: { hadithIndex: todayHadithIndex },
+            });
         } else {
             setSavedHadithIndex(todayHadithIndex);
             localStorage.setItem('saved_hadith_index', todayHadithIndex.toString());
+            logInteraction({
+                type: 'home_save_daily_hadith',
+                category: 'hadith',
+                title: 'حفظ حديث اليوم',
+                details: todayHadith.source,
+                meta: { hadithIndex: todayHadithIndex },
+            });
         }
         Haptics.impact({ style: ImpactStyle.Light });
     };

@@ -3,6 +3,7 @@ import { ChevronLeftIcon, MoonIcon, TargetIcon } from './Icons';
 import { fetchCalendar, fetchHijriCalendar, CalendarDay, getGregorianDate } from '../services/prayerService';
 import { usePrayerTimes } from '../hooks/usePrayerTimes';
 import { useTheme } from './ThemeContext';
+import { ActivityLogEntry, formatDurationArabic, getActivitiesByDate, getDailyActivitySummary } from '../services/activityLogStore';
 
 interface CalendarScreenProps {
     onBack: () => void;
@@ -20,6 +21,8 @@ export function CalendarScreen({ onBack }: CalendarScreenProps) {
     const [viewYear, setViewYear] = useState(isHijriPrimary ? 1447 : new Date().getFullYear());
 
     const [selectedDay, setSelectedDay] = useState<CalendarDay | null>(null);
+    const [dayActivities, setDayActivities] = useState<ActivityLogEntry[]>([]);
+    const [daySummary, setDaySummary] = useState({ totalDurationSeconds: 0, interactionsCount: 0, sessionsCount: 0, entriesCount: 0 });
     const { hijriAdj, updateAdjustment } = usePrayerTimes();
 
     const monthNamesAr = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
@@ -167,6 +170,50 @@ export function CalendarScreen({ onBack }: CalendarScreenProps) {
     };
 
     const currentSelectedDayHijri = selectedDay ? getAdjustedHijri(selectedDay.gregorian.date, hijriAdj) : null;
+
+    const toDateKey = (gDateStr: string) => {
+        const [d, m, y] = gDateStr.split('-');
+        return `${y}-${m}-${d}`;
+    };
+
+    const formatTime = (timestamp: number) => {
+        try {
+            return new Intl.DateTimeFormat('ar-MA', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false,
+            }).format(new Date(timestamp));
+        } catch {
+            return '--:--';
+        }
+    };
+
+    const getCategoryLabel = (category: string) => {
+        switch (category) {
+            case 'navigation': return 'تنقل';
+            case 'deed': return 'أعمال';
+            case 'video': return 'فيديو';
+            case 'quran': return 'قرآن';
+            case 'hadith': return 'حديث';
+            case 'tasbih': return 'تسبيح';
+            case 'settings': return 'إعدادات';
+            case 'system': return 'نظام';
+            default: return 'تفاعل';
+        }
+    };
+
+    useEffect(() => {
+        if (!selectedDay) {
+            setDayActivities([]);
+            setDaySummary({ totalDurationSeconds: 0, interactionsCount: 0, sessionsCount: 0, entriesCount: 0 });
+            return;
+        }
+
+        const dayKey = toDateKey(selectedDay.gregorian.date);
+        const entries = getActivitiesByDate(dayKey).sort((a, b) => b.at - a.at);
+        setDayActivities(entries);
+        setDaySummary(getDailyActivitySummary(dayKey));
+    }, [selectedDay]);
 
     return (
         <div className={`h-full transition-colors duration-300 overflow-y-auto hide-scrollbar pb-24 ${theme === 'light' ? 'bg-[#f8fbff] text-slate-800' : 'bg-gradient-to-b from-[#0b1929] via-[#121f38] to-[#0a1525] text-white'}`}>
@@ -371,6 +418,62 @@ export function CalendarScreen({ onBack }: CalendarScreenProps) {
                                     <p className={`text-[14px] font-bold ${theme === 'light' ? 'text-gold-600' : 'text-gold-300'}`}>{p.t.split(' ')[0]}</p>
                                 </div>
                             ))}
+                        </div>
+
+                        <div className={`mt-6 rounded-3xl border p-4 ${theme === 'light' ? 'bg-slate-50 border-slate-100' : 'bg-white/[0.03] border-white/[0.07]'}`}>
+                            <div className="flex items-center justify-between mb-3">
+                                <h5 className={`text-[16px] font-amiri font-bold ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>نشاطك في هذا اليوم</h5>
+                                <span className={`text-[11px] px-2.5 py-1 rounded-xl border ${theme === 'light' ? 'bg-white text-slate-500 border-slate-200' : 'bg-white/[0.04] text-white/70 border-white/[0.1]'}`}>
+                                    {daySummary.entriesCount} حدث
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-2 mb-4">
+                                <div className={`rounded-2xl p-2.5 text-center border ${theme === 'light' ? 'bg-white border-slate-200' : 'bg-white/[0.04] border-white/[0.08]'}`}>
+                                    <p className={`text-[10px] ${theme === 'light' ? 'text-slate-400' : 'text-white/40'}`}>وقت الاستخدام</p>
+                                    <p className={`text-[12px] font-bold ${theme === 'light' ? 'text-gold-600' : 'text-gold-300'}`}>{formatDurationArabic(daySummary.totalDurationSeconds)}</p>
+                                </div>
+                                <div className={`rounded-2xl p-2.5 text-center border ${theme === 'light' ? 'bg-white border-slate-200' : 'bg-white/[0.04] border-white/[0.08]'}`}>
+                                    <p className={`text-[10px] ${theme === 'light' ? 'text-slate-400' : 'text-white/40'}`}>جلسات</p>
+                                    <p className={`text-[12px] font-bold ${theme === 'light' ? 'text-gold-600' : 'text-gold-300'}`}>{daySummary.sessionsCount}</p>
+                                </div>
+                                <div className={`rounded-2xl p-2.5 text-center border ${theme === 'light' ? 'bg-white border-slate-200' : 'bg-white/[0.04] border-white/[0.08]'}`}>
+                                    <p className={`text-[10px] ${theme === 'light' ? 'text-slate-400' : 'text-white/40'}`}>تفاعلات</p>
+                                    <p className={`text-[12px] font-bold ${theme === 'light' ? 'text-gold-600' : 'text-gold-300'}`}>{daySummary.interactionsCount}</p>
+                                </div>
+                            </div>
+
+                            {dayActivities.length === 0 ? (
+                                <div className={`rounded-2xl p-4 text-center border ${theme === 'light' ? 'bg-white border-slate-200 text-slate-400' : 'bg-white/[0.02] border-white/[0.08] text-white/50'}`}>
+                                    لا يوجد نشاط مسجّل في هذا اليوم.
+                                </div>
+                            ) : (
+                                <div className="space-y-2 max-h-72 overflow-y-auto hide-scrollbar pr-1">
+                                    {dayActivities.map((entry) => (
+                                        <div key={entry.id} className={`rounded-2xl p-3 border ${theme === 'light' ? 'bg-white border-slate-200' : 'bg-white/[0.03] border-white/[0.07]'}`}>
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="flex-1">
+                                                    <p className={`text-[13px] font-amiri font-bold leading-snug ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>{entry.title}</p>
+                                                    {entry.details && (
+                                                        <p className={`text-[11px] mt-0.5 leading-snug ${theme === 'light' ? 'text-slate-500' : 'text-white/60'}`}>{entry.details}</p>
+                                                    )}
+                                                </div>
+                                                <div className="text-left">
+                                                    <p className={`text-[11px] font-bold ${theme === 'light' ? 'text-gold-600' : 'text-gold-300'}`}>{formatTime(entry.at)}</p>
+                                                    {entry.durationSeconds && entry.durationSeconds > 0 ? (
+                                                        <p className={`text-[10px] mt-0.5 ${theme === 'light' ? 'text-slate-400' : 'text-white/40'}`}>{formatDurationArabic(entry.durationSeconds)}</p>
+                                                    ) : null}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center justify-between mt-2">
+                                                <span className={`text-[10px] px-2 py-1 rounded-lg border ${theme === 'light' ? 'bg-slate-50 border-slate-200 text-slate-500' : 'bg-white/[0.02] border-white/[0.08] text-white/50'}`}>
+                                                    {getCategoryLabel(entry.category)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}

@@ -8,6 +8,7 @@ import { Clipboard } from '@capacitor/clipboard';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { toPng } from 'html-to-image';
 import { Haptics, NotificationType } from '@capacitor/haptics';
+import { logInteraction } from '../services/activityLogStore';
 
 interface HadithScreenProps {
     onBack: () => void;
@@ -93,6 +94,13 @@ function HadithCard({ hadith, isDark, isSaved, onToggleSave }: { hadith: Hadith;
         const text = `« ${hadith.hadithArabic} »\n\nالمرجع: ${bookArabicName} - حديث رقم ${hadith.hadithNumber}\n\n(تم النسخ من تطبيق Sirat 🌙)`;
         await Clipboard.write({ string: text });
         Haptics.notification({ type: NotificationType.Success });
+        logInteraction({
+            type: 'hadith_copy',
+            category: 'hadith',
+            title: 'نسخ حديث',
+            details: `${bookArabicName} - ${hadith.hadithNumber}`,
+            meta: { hadithNumber: hadith.hadithNumber, bookSlug: hadith.bookSlug },
+        });
     };
 
     const handleShare = async () => {
@@ -127,6 +135,13 @@ function HadithCard({ hadith, isDark, isSaved, onToggleSave }: { hadith: Hadith;
         } finally {
             setIsSharing(false);
         }
+        logInteraction({
+            type: 'hadith_share',
+            category: 'hadith',
+            title: 'مشاركة حديث',
+            details: `${bookArabicName} - ${hadith.hadithNumber}`,
+            meta: { hadithNumber: hadith.hadithNumber, bookSlug: hadith.bookSlug },
+        });
     };
 
     // Construct a verification link. Since we use hadithapi.com, we can link to a search on their site or sunnah.com
@@ -361,8 +376,22 @@ export function HadithScreen({ onBack, onDetailViewChange }: HadithScreenProps) 
             let newSaved;
             if (isSaved) {
                 newSaved = prev.filter(h => !(h.hadithNumber === hadith.hadithNumber && h.bookSlug === hadith.bookSlug));
+                logInteraction({
+                    type: 'hadith_unsave',
+                    category: 'hadith',
+                    title: 'إزالة حديث من المحفوظات',
+                    details: `${getBookArabicName({ bookSlug: hadith.bookSlug, bookName: hadith.bookName } as any)} - ${hadith.hadithNumber}`,
+                    meta: { hadithNumber: hadith.hadithNumber, bookSlug: hadith.bookSlug },
+                });
             } else {
                 newSaved = [...prev, hadith];
+                logInteraction({
+                    type: 'hadith_save',
+                    category: 'hadith',
+                    title: 'حفظ حديث',
+                    details: `${getBookArabicName({ bookSlug: hadith.bookSlug, bookName: hadith.bookName } as any)} - ${hadith.hadithNumber}`,
+                    meta: { hadithNumber: hadith.hadithNumber, bookSlug: hadith.bookSlug },
+                });
             }
             localStorage.setItem('savedHadiths', JSON.stringify(newSaved));
             return newSaved;
@@ -409,6 +438,13 @@ export function HadithScreen({ onBack, onDetailViewChange }: HadithScreenProps) 
         setLoadingHadiths(true);
         setPage(1);
         setViewMode('hadiths');
+        logInteraction({
+            type: 'hadith_open_book',
+            category: 'hadith',
+            title: 'فتح كتاب حديث',
+            details: getBookArabicName(book),
+            meta: { bookSlug: book.bookSlug },
+        });
         try {
             // Load first 3 pages at once for better topic filtering
             const [p1, p2, p3] = await Promise.allSettled([
@@ -431,6 +467,13 @@ export function HadithScreen({ onBack, onDetailViewChange }: HadithScreenProps) 
 
     const handleTopicChange = async (topicId: string) => {
         setSelectedTopic(topicId);
+        logInteraction({
+            type: 'hadith_change_topic',
+            category: 'hadith',
+            title: 'تغيير موضوع الأحاديث',
+            details: TOPICS.find(t => t.id === topicId)?.label || topicId,
+            meta: { topicId },
+        });
         // If filtering and we have few results, load more pages
         if (topicId !== 'all' && selectedBook) {
             const filtered = filterByTopic(hadiths, topicId);
@@ -459,6 +502,13 @@ export function HadithScreen({ onBack, onDetailViewChange }: HadithScreenProps) 
 
     const loadMore = async () => {
         if (!selectedBook || loadingMore) return;
+        logInteraction({
+            type: 'hadith_load_more',
+            category: 'hadith',
+            title: 'تحميل المزيد من الأحاديث',
+            details: getBookArabicName(selectedBook),
+            meta: { page: page + 1 },
+        });
         setLoadingMore(true);
         try {
             const nextPage = page + 1;
@@ -474,6 +524,13 @@ export function HadithScreen({ onBack, onDetailViewChange }: HadithScreenProps) 
 
     const handleSearch = async () => {
         if (!search.trim()) return;
+        logInteraction({
+            type: 'hadith_search',
+            category: 'hadith',
+            title: 'بحث في الأحاديث',
+            details: search.trim(),
+            meta: { queryLength: search.trim().length },
+        });
         setLoadingHadiths(true);
         setSelectedBook(null);
         setViewMode('search');

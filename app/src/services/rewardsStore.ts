@@ -1,4 +1,5 @@
 import { getDailyChallengeId, getDeedById, type Deed } from '../data/challengeData';
+import { logInteraction } from './activityLogStore';
 
 export interface Badge {
     id: string;
@@ -121,6 +122,19 @@ export function completeDeed(deedId: number, xp: number): { newBadges: Badge[]; 
     });
 
     saveState(state);
+
+    const deed = getDeedById(deedId);
+    logInteraction({
+        type: 'deed_completed',
+        category: 'deed',
+        title: 'إكمال عمل صالح',
+        details: deed ? `تم إكمال: ${deed.text}` : `تم إكمال عمل رقم ${deedId}`,
+        meta: {
+            deedId,
+            xp,
+            totalXP: state.totalXP,
+        },
+    });
 
     return {
         newBadges: newlyUnlocked,

@@ -27,16 +27,39 @@ export function VideoPlayerProvider({ children }: { children: React.ReactNode })
     const [isPlaying, setIsPlaying] = useState(true);
     const [currentSeconds, setCurrentSeconds] = useState(0);
     const [viewMode, setViewMode] = useState<'fullscreen' | 'mini'>('fullscreen');
+    const currentSecondsRef = React.useRef(0);
+    const currentVideoRef = React.useRef<FetchedVideoItem | null>(null);
+
+    // Listen to YouTube iframe postMessages for accurate current-time tracking
+    useEffect(() => {
+        const handler = (e: MessageEvent) => {
+            try {
+                const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+                if (data?.event === 'infoDelivery' && typeof data?.info?.currentTime === 'number') {
+                    const t = Math.floor(data.info.currentTime);
+                    setCurrentSeconds(t);
+                    currentSecondsRef.current = t;
+                }
+            } catch { /* ignore */ }
+        };
+        window.addEventListener('message', handler);
+        return () => window.removeEventListener('message', handler);
+    }, []);
 
     const isMiniEnabled = () => {
         const value = localStorage.getItem(VIDEO_MINI_PLAYER_KEY);
         return value === null ? true : value === 'true';
     };
 
+    // Fallback interval tracker (used when YouTube infoDelivery postMessages don't fire)
     useEffect(() => {
         if (!currentVideo || !isPlaying) return;
         const timer = setInterval(() => {
-            setCurrentSeconds(prev => prev + 1);
+            setCurrentSeconds(prev => {
+                const next = prev + 1;
+                currentSecondsRef.current = next;
+                return next;
+            });
         }, 1000);
         return () => clearInterval(timer);
     }, [currentVideo, isPlaying]);
@@ -51,9 +74,11 @@ export function VideoPlayerProvider({ children }: { children: React.ReactNode })
 
     const openVideo = (video: FetchedVideoItem) => {
         setCurrentVideo(video);
+        currentVideoRef.current = video;
         setIframeSrc(getEmbedUrl(video.videoId));
         setIsPlaying(true);
         setCurrentSeconds(0);
+        currentSecondsRef.current = 0;
         setViewMode('fullscreen');
     };
 
@@ -63,15 +88,22 @@ export function VideoPlayerProvider({ children }: { children: React.ReactNode })
             closeVideo();
             return;
         }
+        // Encode current position so the mini-player iframe resumes from where the user left off
+        const startSec = Math.max(0, currentSecondsRef.current - 1);
+        if (startSec > 2) {
+            setIframeSrc(getEmbedUrl(currentVideo.videoId) + `&start=${startSec}`);
+        }
         setViewMode('mini');
     };
 
     const closeVideo = () => {
         sendCommand('stopVideo');
         setCurrentVideo(null);
+        currentVideoRef.current = null;
         setIframeSrc('');
         setIsPlaying(false);
         setCurrentSeconds(0);
+        currentSecondsRef.current = 0;
         setViewMode('fullscreen');
     };
 

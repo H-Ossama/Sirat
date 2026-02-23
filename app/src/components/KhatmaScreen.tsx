@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { ChevronLeftIcon } from './Icons';
 import { useTheme } from './ThemeContext';
+import { logInteraction } from '../services/activityLogStore';
 
 // ─── Juz Data ────────────────────────────────────────────────────────────────
 const JUZ_DATA = [
@@ -114,19 +115,52 @@ export function KhatmaScreen({ onBack, onNavigate }: KhatmaScreenProps) {
 
     const toggleJuz = (num: number) => {
         const next = new Set(completed);
-        if (next.has(num)) { next.delete(num); } else {
+        const wasDone = next.has(num);
+        if (wasDone) { next.delete(num); } else {
             next.add(num);
             if (!goalStart) { const start = getTodayStr(); setGoalStart(start); saveGoalStart(start); }
         }
         setCompleted(next);
         saveCompleted(next);
+        logInteraction({
+            type: wasDone ? 'khatma_unmark_juz' : 'khatma_mark_juz',
+            category: 'quran',
+            title: wasDone ? 'إلغاء إكمال جزء' : 'إكمال جزء في الختمة',
+            details: `الجزء ${num}`,
+            meta: { juz: num, completedCount: next.size },
+        });
     };
 
-    const handleRead = (surahId: number, pageStart: number) => { if (onNavigate) onNavigate('quran', surahId, pageStart); };
-    const handleStartGoal = () => { const start = getTodayStr(); setGoalStart(start); saveGoalStart(start); };
+    const handleRead = (surahId: number, pageStart: number) => {
+        logInteraction({
+            type: 'khatma_open_quran',
+            category: 'quran',
+            title: 'فتح القرآن من الختمة',
+            details: `سورة ${surahId} - صفحة ${pageStart}`,
+            meta: { surahId, pageStart },
+        });
+        if (onNavigate) onNavigate('quran', surahId, pageStart);
+    };
+    const handleStartGoal = () => {
+        const start = getTodayStr();
+        setGoalStart(start);
+        saveGoalStart(start);
+        logInteraction({
+            type: 'khatma_start_goal',
+            category: 'quran',
+            title: 'بدء خطة ختمة',
+            details: `تاريخ البداية ${start}`,
+        });
+    };
     const handleResetGoal = () => {
         localStorage.removeItem('khatma_goal_start'); localStorage.removeItem('khatma_juz_v1');
         setGoalStart(null); setCompleted(new Set());
+        logInteraction({
+            type: 'khatma_reset_goal',
+            category: 'quran',
+            title: 'إعادة ضبط الختمة',
+            details: 'تم مسح تقدم الختمة',
+        });
     };
 
     const bg = D ? 'bg-gradient-to-b from-[#0b1929] via-[#0f1f38] to-[#0a1525] text-white' : 'bg-[#f4f7fb] text-slate-800';

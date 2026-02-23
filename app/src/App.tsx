@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense, lazy } from 'react';
+import { useState, useEffect, Suspense, lazy, useRef } from 'react';
 import { HomeScreen } from './components/HomeScreen';
 import { HomeIcon, PlayIcon, BeadsIcon, SettingsIcon, HadithIcon } from './components/Icons';
 import { requestNotificationPermission, setupNotificationChannels, setupNotificationActions, listenToNotificationActions } from './services/notificationService';
@@ -13,6 +13,7 @@ import { AudioProvider } from './components/AudioContext';
 import { VideoPlayerProvider } from './components/VideoPlayerContext';
 import { MiniAudioPlayer } from './components/MiniAudioPlayer';
 import { MiniVideoPlayer } from './components/MiniVideoPlayer';
+import { logInteraction, logScreenSession } from './services/activityLogStore';
 
 const OnboardingScreen = lazy(() => import('./components/OnboardingScreen').then(m => ({ default: m.OnboardingScreen })));
 const AdhkarScreen = lazy(() => import('./components/AdhkarScreen').then(m => ({ default: m.AdhkarScreen })));
@@ -153,6 +154,28 @@ function AppContent() {
     const [quranAutoOpenPage, setQuranAutoOpenPage] = useState<number | null>(null);
     const [videosInCategory, setVideosInCategory] = useState(false);
     const [hadithInDetails, setHadithInDetails] = useState(false);
+    const currentSessionScreenRef = useRef<Screen>('home');
+    const currentSessionStartedAtRef = useRef<number>(Date.now());
+
+    const screenLabelMap: Record<Screen, string> = {
+        home: 'الرئيسية',
+        adhkar: 'الأذكار',
+        videos: 'الفيديوهات',
+        quran: 'القرآن',
+        hadith: 'الحديث',
+        duas: 'الأدعية',
+        tasbih: 'التسبيح',
+        calendar: 'التقويم',
+        qibla: 'القبلة',
+        settings: 'الإعدادات',
+        garden: 'الحديقة',
+        deeds: 'الأعمال',
+        zakat: 'الزكاة',
+        khatma: 'الختمة',
+        lastTen: 'العشر الأواخر',
+        badges: 'الأوسمة',
+        profile: 'الملف الشخصي',
+    };
 
     const handleMiniPlayerClick = (surahId: number) => {
         setQuranAutoOpenSurah(surahId);
@@ -168,12 +191,26 @@ function AppContent() {
             const id = parseInt(screen.split(':')[1]);
             setDeedsHighlightId(isNaN(id) ? undefined : id);
             if ('deeds' === currentScreen) return;
+            logInteraction({
+                type: 'navigate',
+                category: 'navigation',
+                title: 'تنقّل داخل التطبيق',
+                details: `انتقال إلى ${screenLabelMap.deeds}`,
+                screen: 'deeds',
+            });
             setCurrentScreen('deeds');
             setHistory(prev => [...prev, 'deeds']);
             return;
         }
         const s = screen as Screen;
         if (s === currentScreen) return;
+        logInteraction({
+            type: 'navigate',
+            category: 'navigation',
+            title: 'تنقّل داخل التطبيق',
+            details: `انتقال إلى ${screenLabelMap[s] ?? s}`,
+            screen: s,
+        });
         setCurrentScreen(s);
         setHistory(prev => [...prev, s]);
         if (mainTabs.includes(s)) {
@@ -186,12 +223,26 @@ function AppContent() {
             const newHistory = [...history];
             newHistory.pop(); // remove current
             const prev = newHistory[newHistory.length - 1];
+            logInteraction({
+                type: 'back_navigation',
+                category: 'navigation',
+                title: 'رجوع',
+                details: `الرجوع إلى ${screenLabelMap[prev] ?? prev}`,
+                screen: prev,
+            });
             setCurrentScreen(prev);
             setHistory(newHistory);
             if (mainTabs.includes(prev)) {
                 setTabBarScreen(prev);
             }
         } else {
+            logInteraction({
+                type: 'back_navigation',
+                category: 'navigation',
+                title: 'رجوع',
+                details: `الرجوع إلى ${screenLabelMap.home}`,
+                screen: 'home',
+            });
             setCurrentScreen('home');
             setTabBarScreen('home');
             setHistory(['home']);
@@ -199,10 +250,31 @@ function AppContent() {
     };
 
     const goHome = () => {
+        logInteraction({
+            type: 'home_navigation',
+            category: 'navigation',
+            title: 'عودة للرئيسية',
+            details: `الانتقال إلى ${screenLabelMap.home}`,
+            screen: 'home',
+        });
         setCurrentScreen('home');
         setTabBarScreen('home');
         setHistory(['home']);
     };
+
+    useEffect(() => {
+        const now = Date.now();
+        logScreenSession(currentSessionScreenRef.current, currentSessionStartedAtRef.current, now);
+        currentSessionScreenRef.current = currentScreen;
+        currentSessionStartedAtRef.current = now;
+    }, [currentScreen]);
+
+    useEffect(() => {
+        return () => {
+            const now = Date.now();
+            logScreenSession(currentSessionScreenRef.current, currentSessionStartedAtRef.current, now);
+        };
+    }, []);
 
     useEffect(() => {
         if (currentScreen !== 'videos') setVideosInCategory(false);
@@ -284,7 +356,7 @@ function AppContent() {
         switch (currentScreen) {
             case 'home': return <HomeScreen onNavigate={(s) => navigateTo(s as Screen)} />;
             case 'adhkar': return <AdhkarScreen onBack={goBack} />;
-            case 'videos': return <VideosScreen onBack={goBack} onCategoryViewChange={setVideosInCategory} />;
+            case 'videos': return <VideosScreen onBack={goBack} onCategoryViewChange={setVideosInCategory} onNavigate={(s) => navigateTo(s as Screen)} />;
             case 'quran': return <QuranScreen onBack={goBack} autoOpenSurahId={quranAutoOpenSurah} autoOpenPage={quranAutoOpenPage} onAutoOpenConsumed={() => { setQuranAutoOpenSurah(null); setQuranAutoOpenPage(null); }} />;
             case 'duas': return <DuasScreen onBack={goBack} />;
             case 'tasbih': return <TasbihScreen onBack={goBack} />;
