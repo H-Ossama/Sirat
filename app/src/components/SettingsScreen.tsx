@@ -3,7 +3,7 @@ import { usePrayerTimes } from '../hooks/usePrayerTimes';
 import { useTheme } from './ThemeContext';
 import { getNotificationSettings, NotificationSettings, saveNotificationSettings, scheduleAllNotifications } from '../services/notificationService';
 import { CALCULATION_METHODS } from '../services/prayerService';
-import { MapPinIcon, ZapIcon, ChevronLeftIcon } from './Icons';
+import { MapPinIcon, ZapIcon, ChevronLeftIcon, MailIcon, WhatsappIcon, GithubIcon, GlobeIcon } from './Icons';
 import { LocationSelector } from './LocationSelector';
 import { logInteraction } from '../services/activityLogStore';
 import { checkForAppUpdateIfDue, getUpdateOverview, isNativeAndroid, getLastCheckTime } from '../services/updateService';
@@ -172,19 +172,11 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
     };
 
     const checkUpdatesNow = async () => {
-        if (!isNativeAndroid()) {
-            setUpdateStatusText('ميزة التحديث متاحة على أندرويد فقط.');
-            return;
-        }
-
         setCheckingUpdate(true);
         setUpdateStatusText('جاري التحقق من وجود تحديث...');
 
         try {
-            const [overview, release] = await Promise.all([
-                getUpdateOverview(),
-                checkForAppUpdateIfDue(true),
-            ]);
+            const overview = await getUpdateOverview();
 
             if (overview) {
                 setCurrentVersion(overview.currentVersion || '---');
@@ -203,6 +195,14 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
                 }));
             }
 
+            if (!isNativeAndroid()) {
+                setUpdateStatusText('تم جلب البيانات. ميزة تثبيت التحديثات متاحة على أندرويد فقط.');
+                setCheckingUpdate(false);
+                return;
+            }
+
+            const release = await checkForAppUpdateIfDue(true);
+
             if (release) {
                 window.dispatchEvent(new CustomEvent('app:update-found', { detail: release }));
                 setUpdateStatusText(`تم العثور على تحديث جديد (${release.versionTag}).`);
@@ -213,6 +213,8 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
                     details: `تم العثور على تحديث ${release.versionTag}`,
                     meta: { hasUpdate: true, version: release.versionTag },
                 });
+            } else if (overview?.latestVersion === '---' || !overview) {
+                setUpdateStatusText('لا يوجد إصدارات متاحة على GitHub حالياً.');
             } else {
                 setUpdateStatusText('أنت تستخدم آخر إصدار متاح حالياً.');
                 logInteraction({
@@ -223,8 +225,8 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
                     meta: { hasUpdate: false },
                 });
             }
-        } catch {
-            setUpdateStatusText('فشل التحقق من التحديث، حاول مرة أخرى لاحقاً.');
+        } catch (e: any) {
+            setUpdateStatusText(e.message || 'فشل التحقق من التحديث، حاول مرة أخرى لاحقاً.');
         } finally {
             setCheckingUpdate(false);
         }
@@ -509,8 +511,8 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
                         {/* Improved About Section */}
                         <section>
                             <div className="flex flex-col items-center py-6">
-                                <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-gold-500/20 to-amber-400/20 border border-gold-400/10 flex items-center justify-center mb-4 shadow-xl shadow-gold-500/10">
-                                    <span className="text-4xl font-amiri font-bold text-gold-400">م</span>
+                                <div className="w-24 h-24 rounded-[2rem] bg-gradient-to-br from-gold-500/20 to-amber-400/20 border border-gold-400/20 flex items-center justify-center mb-4 shadow-2xl shadow-gold-500/10 overflow-hidden p-3">
+                                    <img src="/assets/icons/icon-512.webp" alt="App Icon" className="w-full h-full object-contain rounded-2xl" />
                                 </div>
                                 <h2 className={`text-2xl font-amiri font-bold mb-1 ${D ? 'text-white' : 'text-slate-800'}`}>تطبيق Sirat</h2>
                                 <p className={`text-[13px] ${D ? 'text-white/40' : 'text-slate-500'}`}>رفيقك الإسلامي الشامل</p>
@@ -518,21 +520,55 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
 
                             <div className={card}>
                                 <div className={`flex items-center justify-between px-5 py-4 ${rowDiv}`} dir="rtl">
-                                    <span className={lbl}>الإصدار</span>
+                                    <span className={lbl}>الإصدار الحالي</span>
                                     <span className={`text-[12px] font-sans font-bold px-3 py-1 rounded-full ${D ? 'bg-white/[0.05] text-gold-400' : 'bg-gold-50 text-gold-600'}`}>{currentVersion}</span>
                                 </div>
                                 <div className={`flex items-center justify-between px-5 py-4 ${rowDiv}`} dir="rtl">
-                                    <span className={lbl}>آخر إصدار على GitHub</span>
+                                    <span className={lbl}>أحدث إصدار على GitHub</span>
                                     <span className={`text-[12px] font-sans ${D ? 'text-white/40' : 'text-slate-500 font-bold'}`}>{latestVersion}</span>
                                 </div>
                                 <div className={`flex items-center justify-between px-5 py-4 ${rowDiv}`} dir="rtl">
-                                    <span className={lbl}>تاريخ آخر إصدار</span>
+                                    <span className={lbl}>تاريخ الإصدار الأخير</span>
                                     <span className={`text-[12px] font-sans ${D ? 'text-white/40' : 'text-slate-500 font-bold'}`}>{latestPublishedAt}</span>
                                 </div>
                                 <div className="flex items-center justify-between px-5 py-4" dir="rtl">
                                     <span className={lbl}>جميع الحقوق محفوظة</span>
                                     <span className={`text-[12px] font-sans ${D ? 'text-white/30' : 'text-slate-400 font-bold'}`}>© 2026</span>
                                 </div>
+                            </div>
+                        </section>
+
+                        <section>
+                            <SectionHead
+                                icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>}
+                                title="تواصل مع المطور"
+                                subtitle="للملاحظات والاقتراحات"
+                            />
+                            <div className={`${card} flex justify-around py-5`} dir="rtl">
+                                <a href="mailto:ossamahattan@gmail.com" className={`flex flex-col items-center gap-2 group`}>
+                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${D ? 'bg-white/[0.05] group-active:bg-gold-500/20 text-white/50 group-active:text-gold-400' : 'bg-slate-100 group-active:bg-gold-50 text-slate-400 group-active:text-gold-600'}`}>
+                                        <MailIcon className="w-6 h-6" />
+                                    </div>
+                                    <span className={`text-[10px] font-bold ${D ? 'text-white/30' : 'text-slate-400'}`}>الإيميل</span>
+                                </a>
+                                <a href="https://wa.me/212630352250" target="_blank" rel="noopener noreferrer" className={`flex flex-col items-center gap-2 group`}>
+                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${D ? 'bg-white/[0.05] group-active:bg-gold-500/20 text-white/50 group-active:text-gold-400' : 'bg-slate-100 group-active:bg-gold-50 text-slate-400 group-active:text-gold-600'}`}>
+                                        <WhatsappIcon className="w-6 h-6" />
+                                    </div>
+                                    <span className={`text-[10px] font-bold ${D ? 'text-white/30' : 'text-slate-400'}`}>واتساب</span>
+                                </a>
+                                <a href="https://github.com/H-Ossama" target="_blank" rel="noopener noreferrer" className={`flex flex-col items-center gap-2 group`}>
+                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${D ? 'bg-white/[0.05] group-active:bg-gold-500/20 text-white/50 group-active:text-gold-400' : 'bg-slate-100 group-active:bg-gold-50 text-slate-400 group-active:text-gold-600'}`}>
+                                        <GithubIcon className="w-6 h-6" />
+                                    </div>
+                                    <span className={`text-[10px] font-bold ${D ? 'text-white/30' : 'text-slate-400'}`}>جيت هاب</span>
+                                </a>
+                                <a href="https://portfolio-v2-eight-lovat.vercel.app/" target="_blank" rel="noopener noreferrer" className={`flex flex-col items-center gap-2 group`}>
+                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${D ? 'bg-white/[0.05] group-active:bg-gold-500/20 text-white/50 group-active:text-gold-400' : 'bg-slate-100 group-active:bg-gold-50 text-slate-400 group-active:text-gold-600'}`}>
+                                        <GlobeIcon className="w-6 h-6" />
+                                    </div>
+                                    <span className={`text-[10px] font-bold ${D ? 'text-white/30' : 'text-slate-400'}`}>الموقع</span>
+                                </a>
                             </div>
                         </section>
 

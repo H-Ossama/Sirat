@@ -132,38 +132,62 @@ function pickApkAsset(assets: GitHubAsset[]): GitHubAsset | null {
 }
 
 async function fetchLatestGitHubRelease(): Promise<GitHubRelease> {
-    const response = await fetch(RELEASE_ENDPOINT, {
-        headers: {
-            Accept: 'application/vnd.github+json',
-        },
-    });
+    try {
+        const response = await fetch(RELEASE_ENDPOINT, {
+            headers: {
+                Accept: 'application/vnd.github+json',
+            },
+        });
 
-    if (!response.ok) {
-        throw new Error(`Update check failed (${response.status})`);
+        if (response.status === 404) {
+            throw new Error('لا يوجد إصدارات منشورة بعد');
+        }
+
+        if (!response.ok) {
+            throw new Error(`فشل التحقق (${response.status})`);
+        }
+
+        return await response.json();
+    } catch (e: any) {
+        if (e.message.indexOf('Failed to fetch') !== -1) {
+            throw new Error('فشل الاتصال بالإنترنت');
+        }
+        throw e;
     }
-
-    return response.json();
 }
 
 export async function getUpdateOverview(): Promise<UpdateOverview | null> {
-    if (!isNativeAndroid()) {
+    const isNative = isNativeAndroid();
+    
+    try {
+        const [release, appInfo] = await Promise.all([
+            fetchLatestGitHubRelease().catch(() => null),
+            isNative ? CapApp.getInfo() : Promise.resolve({ version: '1.0.0' }),
+        ]);
+
+        if (!release) {
+            return {
+                currentVersion: appInfo?.version || '1.0.0',
+                latestVersion: '---',
+                latestPublishedAt: '',
+                hasApkAsset: false,
+                hasUpdate: false,
+            };
+        }
+
+        const apkAsset = pickApkAsset(release.assets ?? []);
+
+        return {
+            currentVersion: appInfo?.version || '1.0.0',
+            latestVersion: release.tag_name || release.name,
+            latestPublishedAt: release.published_at,
+            hasApkAsset: !!apkAsset,
+            hasUpdate: !!apkAsset && isReleaseNewer(release.tag_name || release.name, appInfo?.version || '0.0.0'),
+        };
+    } catch (e) {
+        console.error('Update overview check failed:', e);
         return null;
     }
-
-    const [release, appInfo] = await Promise.all([
-        fetchLatestGitHubRelease(),
-        CapApp.getInfo(),
-    ]);
-
-    const apkAsset = pickApkAsset(release.assets ?? []);
-
-    return {
-        currentVersion: appInfo.version,
-        latestVersion: release.tag_name || release.name,
-        latestPublishedAt: release.published_at,
-        hasApkAsset: !!apkAsset,
-        hasUpdate: !!apkAsset && isReleaseNewer(release.tag_name || release.name, appInfo.version),
-    };
 }
 
 export function isNativeAndroid(): boolean {
