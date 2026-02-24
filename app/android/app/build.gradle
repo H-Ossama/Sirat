@@ -7,7 +7,7 @@ android {
         applicationId "com.me3raj.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-$15
+        versionCode 6
         versionName "3.1.8-Beta"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {

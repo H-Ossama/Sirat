@@ -14,7 +14,7 @@ if (Test-Path $PackageJsonPath) {
     Write-Host "Updating $PackageJsonPath to $NewVersion..." -ForegroundColor Cyan
     $content = Get-Content $PackageJsonPath -Raw
     # Update version while preserving original formatting
-    $content = $content -replace '(?m)^(\s*"version":\s*)"[^"]+"', ('$1' + "`"$NewVersion`"")
+    $content = $content -replace '(?m)^(\s*"version":\s*)"[^"]+"', ('${1}' + "`"$NewVersion`"")
     # Use UTF8 without BOM for standard compliance
     [System.IO.File]::WriteAllText((Get-Item $PackageJsonPath).FullName, $content, (New-Object System.Text.UTF8Encoding($false)))
 } else {
@@ -27,14 +27,14 @@ if (Test-Path $BuildGradlePath) {
     $content = Get-Content $BuildGradlePath -Raw
 
     # Update versionName while preserving original whitespace/formatting
-    $content = $content -replace '(?m)^(\s*versionName\s+)"[^"]+"', ('$1' + "`"$NewVersion`"")
+    $content = $content -replace '(?m)^(\s*versionName\s+)"[^"]+"', ('${1}' + "`"$NewVersion`"")
     Write-Host "  Set versionName to $NewVersion" -ForegroundColor Gray
 
     # Increment versionCode while preserving original whitespace/formatting
     if ($content -match '(?m)^\s*versionCode\s+(\d+)') {
         $oldCode = [int]$matches[1]
         $newCode = $oldCode + 1
-        $content = $content -replace '(?m)^(\s*versionCode\s+)\d+', ('$1' + "$newCode")
+        $content = $content -replace '(?m)^(\s*versionCode\s+)\d+', ('${1}' + "$newCode")
         Write-Host "  Incremented versionCode to $newCode" -ForegroundColor Gray
     }
 
