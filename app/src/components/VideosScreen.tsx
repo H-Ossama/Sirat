@@ -437,7 +437,7 @@ export function VideosScreen({ onBack, onCategoryViewChange, onNavigate }: Video
     // ══════════════════════════════════════════════════════════════════════════
     return (
         <div ref={scrollRef} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
-            className={`h-full overflow-y-auto hide-scrollbar pb-28 ${isDark ? 'bg-[#080b14] text-white' : 'bg-[#f4f7fe] text-slate-800'}`}>
+            className={`h-full overflow-y-auto hide-scrollbar pb-28 ${isDark ? 'text-white' : 'text-slate-800'}`}>
 
             {selectedCategoryId && <PullSpinner isDark={isDark} pullDistance={pullDistance} refreshing={refreshing} />}
 

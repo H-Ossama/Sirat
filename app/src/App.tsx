@@ -26,6 +26,14 @@ import {
     startAppUpdateDownload,
     type AppUpdateRelease,
 } from './services/updateService';
+import {
+    subscribeToAthanPlayback,
+    stopAthan,
+    getAthanSettings,
+    scheduleAthanNotifications,
+    type AthanPlaybackState,
+} from './services/athanService';
+import { AthanScreen } from './components/AthanScreen';
 import type { PluginListenerHandle } from '@capacitor/core';
 
 const OnboardingScreen = lazy(() => import('./components/OnboardingScreen').then(m => ({ default: m.OnboardingScreen })));
@@ -144,7 +152,7 @@ function AppWrapper() {
     const { theme } = useTheme();
     return (
         <div className={`fixed inset-0 overflow-hidden ${theme === 'light' ? 'light-theme bg-[#f8fbff]' : 'dark-theme bg-[#08080e]'}`} dir="rtl">
-            <div className="h-full flex flex-col pt-safe-top">
+            <div className="h-full flex flex-col pt-safe-top relative z-10">
                 <div className="flex-1 relative overflow-hidden">
                     <AppContent />
                 </div>
@@ -161,6 +169,24 @@ function AppContent() {
     const [tabBarScreen, setTabBarScreen] = useState<Screen>('home');
     const [history, setHistory] = useState<Screen[]>(['home']);
 
+    const [appBgSettings, setAppBgSettings] = useState(() => ({
+        image: localStorage.getItem('app_bg_image') || 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?q=80&w=1080&auto=format&fit=crop',
+        custom: localStorage.getItem('app_bg_custom') || '',
+        blur: parseInt(localStorage.getItem('app_bg_blur') || '0')
+    }));
+
+    useEffect(() => {
+        const handleBgChange = () => {
+            setAppBgSettings({
+                image: localStorage.getItem('app_bg_image') || 'none',
+                custom: localStorage.getItem('app_bg_custom') || '',
+                blur: parseInt(localStorage.getItem('app_bg_blur') || '0')
+            });
+        };
+        window.addEventListener('app:bg-changed', handleBgChange);
+        return () => window.removeEventListener('app:bg-changed', handleBgChange);
+    }, []);
+
     const mainTabs: Screen[] = ['home', 'videos', 'tasbih', 'settings', 'hadith'];
     const [deedsHighlightId, setDeedsHighlightId] = useState<number | undefined>(undefined);
     const [quranAutoOpenSurah, setQuranAutoOpenSurah] = useState<number | null>(null);
@@ -176,6 +202,13 @@ function AppContent() {
     const currentSessionStartedAtRef = useRef<number>(Date.now());
     const availableUpdateRef = useRef<AppUpdateRelease | null>(null);
     const waitingInstallPermissionRef = useRef(false);
+
+    // Athan playback state
+    const [athanPlaybackState, setAthanPlaybackState] = useState<AthanPlaybackState | null>(null);
+
+    useEffect(() => {
+        return subscribeToAthanPlayback(state => setAthanPlaybackState(state));
+    }, []);
 
     const screenLabelMap: Record<Screen, string> = {
         home: 'الرئيسية',
@@ -468,6 +501,14 @@ function AppContent() {
         init();
 
         const unlisten = listenToNotificationActions((screen, actionId, extra) => {
+            if (actionId === 'mute_athan') {
+                stopAthan();
+                return;
+            }
+            if (actionId === 'open_athan') {
+                navigateTo('home');
+                return;
+            }
             if (actionId === 'mark_prayed') {
                 const prayer = extra?.prayer;
                 let deedId = 7;
@@ -565,36 +606,65 @@ function AppContent() {
         || (currentScreen === 'videos' && videosInCategory)
         || (currentScreen === 'hadith' && hadithInDetails);
 
+    const showBg = ['home', 'hadith', 'videos'].includes(currentScreen) && appBgSettings.image !== 'none';
+    const bgUrl = appBgSettings.image === 'custom' ? appBgSettings.custom : appBgSettings.image;
+
     return (
         <BackHandlerProvider onDefaultBack={() => {
+            if (athanPlaybackState) {
+                stopAthan();
+                return;
+            }
             if (currentScreen !== 'home') {
                 goBack();
             } else {
                 CapApp.exitApp();
             }
         }}>
-            <Suspense fallback={<div className="h-full w-full" />}>
-                {renderScreen()}
-            </Suspense>
-            {currentScreen !== 'quran' && (
-                <MiniAudioPlayer hasTabBar={!hideTabBar} onNavigate={handleMiniPlayerClick} />
+            {showBg && bgUrl && (
+                <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+                    <div 
+                        className="absolute inset-[-50px] bg-cover bg-center"
+                        style={{
+                            backgroundImage: `url('${bgUrl}')`,
+                            filter: `blur(${appBgSettings.blur}px)`,
+                            transform: 'scale(1.1)'
+                        }}
+                    />
+                    <div className={`absolute inset-0 ${theme === 'light' ? 'bg-white/80' : 'bg-black/80'}`} />
+                </div>
             )}
-            <MiniVideoPlayer hasTabBar={!hideTabBar} />
-            {!hideTabBar && (
-                <TabBar activeTab={tabBarScreen} onTabChange={navigateTo} />
-            )}
-            <AppUpdateModal
-                open={updateModalOpen}
-                release={availableUpdate}
-                stage={updateModalStage}
-                progress={updateProgress}
-                message={updateMessage}
-                onUpdateNow={handleUpdateNow}
-                onLater={handleUpdateLater}
-                onOpenPermission={handleOpenPermission}
-                onRetry={handleUpdateNow}
-                onCloseError={() => setUpdateModalOpen(false)}
-            />
+            <div className="relative z-10 h-full w-full">
+                <Suspense fallback={<div className="h-full w-full" />}>
+                    {renderScreen()}
+                </Suspense>
+                {currentScreen !== 'quran' && (
+                    <MiniAudioPlayer hasTabBar={!hideTabBar} onNavigate={handleMiniPlayerClick} />
+                )}
+                <MiniVideoPlayer hasTabBar={!hideTabBar} />
+                {!hideTabBar && !athanPlaybackState && (
+                    <TabBar activeTab={tabBarScreen} onTabChange={navigateTo} />
+                )}
+                {/* Athan Full Screen Overlay */}
+                {athanPlaybackState && getAthanSettings().fullScreenEnabled && (
+                    <AthanScreen
+                        state={athanPlaybackState}
+                        onClose={() => setAthanPlaybackState(null)}
+                    />
+                )}
+                <AppUpdateModal
+                    open={updateModalOpen}
+                    release={availableUpdate}
+                    stage={updateModalStage}
+                    progress={updateProgress}
+                    message={updateMessage}
+                    onUpdateNow={handleUpdateNow}
+                    onLater={handleUpdateLater}
+                    onOpenPermission={handleOpenPermission}
+                    onRetry={handleUpdateNow}
+                    onCloseError={() => setUpdateModalOpen(false)}
+                />
+            </div>
         </BackHandlerProvider>
     );
 }

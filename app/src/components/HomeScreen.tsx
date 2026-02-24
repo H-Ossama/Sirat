@@ -47,6 +47,16 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
         return saved ? parseInt(saved) : null;
     });
 
+    const [appBgImage, setAppBgImage] = useState(() => localStorage.getItem('app_bg_image') || 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?q=80&w=1080&auto=format&fit=crop');
+
+    useEffect(() => {
+        const handleBgChange = () => {
+            setAppBgImage(localStorage.getItem('app_bg_image') || 'none');
+        };
+        window.addEventListener('app:bg-changed', handleBgChange);
+        return () => window.removeEventListener('app:bg-changed', handleBgChange);
+    }, []);
+
     // Local Hijri display logic that follows the adjustment
     const adjustedHijriStr = useMemo(() => {
         const toLatinNum = (str: string) => {
@@ -175,7 +185,7 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
     const isDark = theme !== 'light';
 
     return (
-        <div className={`h-full overflow-y-auto hide-scrollbar pb-28 transition-colors duration-500 ${isDark ? 'bg-gradient-to-b from-[#080f1e] via-[#0b1528] to-[#080f1e] text-white islamic-pattern-dark' : 'bg-[#f5f7fc] text-slate-800 islamic-pattern'}`}>
+        <div className={`h-full overflow-y-auto hide-scrollbar pb-28 transition-colors duration-500 ${isDark ? 'text-white' : 'text-slate-800'} ${appBgImage === 'none' ? (isDark ? 'islamic-pattern-dark' : 'islamic-pattern') : ''}`}>
 
             {/* ── Header ── */}
             <div className="relative px-5 pt-5 pb-3" dir="rtl">

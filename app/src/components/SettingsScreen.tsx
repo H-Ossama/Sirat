@@ -7,6 +7,22 @@ import { MapPinIcon, ZapIcon, ChevronLeftIcon, MailIcon, WhatsappIcon, GithubIco
 import { LocationSelector } from './LocationSelector';
 import { logInteraction } from '../services/activityLogStore';
 import { checkForAppUpdateIfDue, getUpdateOverview, isNativeAndroid, getLastCheckTime } from '../services/updateService';
+import {
+    AthanSettings,
+    MUEZZINS,
+    PRAYERS_WITH_ATHAN,
+    PrayerWithAthan,
+    QUICK_MUTE_GESTURES,
+    REMINDER_SOUNDS,
+    getAthanSettings,
+    saveAthanSettings,
+    scheduleAthanNotifications,
+    getMuezzinById,
+    downloadMuezzin,
+    getDownloadStatus,
+} from '../services/athanService';
+import AthanMuezzinPicker from './AthanMuezzinPicker';
+import AthanStylePicker from './AthanStylePicker';
 
 interface SettingsScreenProps {
     onBack: () => void;
@@ -29,19 +45,36 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
     const isDark = theme !== 'light';
     const { city, changeCity, methodId, changeMethod, school, changeSchool, prayerData, locationName, refreshLocation, locationLoading, prayerOffsets, updatePrayerOffset, updateAdjustment } = usePrayerTimes();
     const [settings, setSettings] = useState<NotificationSettings>(getNotificationSettings);
+    const [athanSettings, setAthanSettings] = useState<AthanSettings>(getAthanSettings);
+    const [prayerPickingMuezzin, setPrayerPickingMuezzin] = useState<PrayerWithAthan | null>(null);
+    const [showStylePicker, setShowStylePicker] = useState(false);
     const [hijriAdj, setHijriAdj] = useState(parseInt(localStorage.getItem('hijri_adjustment') || '0'));
     const [videoMiniPlayerEnabled, setVideoMiniPlayerEnabled] = useState(() => {
         const v = localStorage.getItem('video_mini_player_enabled');
         return v === null ? true : v === 'true';
     });
     const [showLocationSelector, setShowLocationSelector] = useState(false);
-    const [activeTab, setActiveTab] = useState<'main' | 'prayer' | 'notifications' | 'appearance' | 'about'>('main');
+    const [activeTab, setActiveTab] = useState<'main' | 'prayer' | 'notifications' | 'appearance' | 'about' | 'athan' | 'appBackground'>('main');
     const [currentVersion, setCurrentVersion] = useState('---');
     const [latestVersion, setLatestVersion] = useState('---');
     const [latestPublishedAt, setLatestPublishedAt] = useState('---');
     const [lastCheckedText, setLastCheckedText] = useState('---');
     const [checkingUpdate, setCheckingUpdate] = useState(false);
     const [updateStatusText, setUpdateStatusText] = useState('');
+
+    const [appBgImage, setAppBgImage] = useState(localStorage.getItem('app_bg_image') || 'https://images.unsplash.com/photo-1502082553048-f009c37129b9?q=80&w=1080&auto=format&fit=crop');
+    const [appBgCustom, setAppBgCustom] = useState(localStorage.getItem('app_bg_custom') || '');
+    const [appBgBlur, setAppBgBlur] = useState(parseInt(localStorage.getItem('app_bg_blur') || '0'));
+
+    const saveAppBg = (image: string, custom: string, blur: number) => {
+        localStorage.setItem('app_bg_image', image);
+        localStorage.setItem('app_bg_custom', custom);
+        localStorage.setItem('app_bg_blur', blur.toString());
+        setAppBgImage(image);
+        setAppBgCustom(custom);
+        setAppBgBlur(blur);
+        window.dispatchEvent(new CustomEvent('app:bg-changed'));
+    };
 
     useEffect(() => {
         let cancelled = false;
@@ -96,6 +129,17 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
             title: newSettings[key] ? 'تفعيل إشعار' : 'تعطيل إشعار',
             details: String(key),
             meta: { key: String(key), enabled: !!newSettings[key] },
+        });
+    };
+
+    const updateAthan = (updater: (prev: AthanSettings) => AthanSettings) => {
+        setAthanSettings(prev => {
+            const next = updater(prev);
+            saveAthanSettings(next);
+            if (prayerData) {
+                scheduleAthanNotifications({ prayers: prayerData.prayers, settings: next });
+            }
+            return next;
         });
     };
 
@@ -237,7 +281,9 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
         prayer: 'مواقيت الصلاة',
         notifications: 'الإشعارات والتنبيهات',
         appearance: 'المظهر والتقويم',
-        about: 'عن التطبيق'
+        about: 'حول التطبيق',
+        athan: 'إعدادات الأذان',
+        appBackground: 'خلفية التطبيق',
     }[activeTab];
 
     return (
@@ -258,9 +304,11 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
                         <div className="grid grid-cols-1 gap-3">
                             {[
                                 { id: 'prayer', title: 'مواقيت الصلاة والموقع', sub: 'طرق الحساب، المذهب، والوقع', icon: <MapPinIcon className="w-5 h-5" /> },
+                                { id: 'athan', title: 'إعدادات الأذان', sub: 'المؤذن، الصوت، تذكيرات قبل الأذان', icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg> },
                                 { id: 'notifications', title: 'الإشعارات والتنبيهات', sub: 'تذكير بالصلاة والأذكار والسحور', icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg> },
                                 { id: 'appearance', title: 'المظهر والتقويم', sub: 'الوضع الليلي وتعديل التاريخ الهجري', icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="5" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" /></svg> },
-                                { id: 'about', title: 'عن التطبيق والمصادر', sub: 'الإصدار، الحقوق ومصادر البيانات', icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
+                                { id: 'appBackground', title: 'خلفية التطبيق', sub: 'تخصيص صورة الخلفية والضبابية', icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg> },
+                                { id: 'about', title: 'حول التطبيق والمصادر', sub: 'الإصدار، الحقوق ومصادر البيانات', icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
                             ].map((cat) => (
                                 <button
                                     key={cat.id}
@@ -656,10 +704,413 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
                         </section>
                     </div>
                 )}
+
+                {activeTab === 'athan' && (
+                    <div className="space-y-7 animation-slide-in pb-10">
+
+                        {/* Status & Audio Controls */}
+                        <section>
+                            <SectionHead
+                                icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M12 6v12m0-12a3 3 0 00-3 3v6a3 3 0 006 0V9a3 3 0 00-3-3zm6.036 14.036a9 9 0 010-12.728" /></svg>}
+                                title="إعدادات الصوت"
+                                subtitle="التحكم في حالة وحجم صوت الأذان"
+                            />
+                            <div className={card}>
+                                {/* Global Mute */}
+                                <div className={`flex items-center justify-between px-4 py-4 ${rowDiv}`} dir="rtl">
+                                    <div>
+                                        <p className={lbl}>{athanSettings.globalMuted ? 'صوت الأذان مكتوم' : 'صوت الأذان مفعّل'}</p>
+                                        <p className={sub}>{athanSettings.globalMuted ? 'سيعمل الأذان بدون صوت' : 'سيُشغَّل صوت الأذان الطبيعي'}</p>
+                                    </div>
+                                    <ToggleSwitch
+                                        on={!athanSettings.globalMuted}
+                                        onToggle={() => updateAthan(s => ({ ...s, globalMuted: !s.globalMuted }))}
+                                    />
+                                </div>
+
+                                {/* Volume Slider */}
+                                <div className={`px-5 py-4 ${rowDiv}`} dir="rtl">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <p className={lbl}>مستوى صوت الأذان</p>
+                                        <span className={`text-[13px] font-sans font-bold ${D ? 'text-gold-400' : 'text-gold-600'}`}>
+                                            {Math.round(athanSettings.volume * 100)}%
+                                        </span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="100"
+                                        value={Math.round(athanSettings.volume * 100)}
+                                        onChange={e => updateAthan(s => ({ ...s, volume: parseInt(e.target.value) / 100 }))}
+                                        className="w-full accent-gold-500 h-1 rounded-full cursor-pointer"
+                                    />
+                                </div>
+
+                                {/* Override Silent */}
+                                <div className="flex items-center justify-between px-4 py-3.5" dir="rtl">
+                                    <div>
+                                        <p className={lbl}>تجاوز وضع الصامت</p>
+                                        <p className={sub}>تشغيل الأذان حتى لو كان الهاتف صامتاً</p>
+                                    </div>
+                                    <ToggleSwitch
+                                        on={athanSettings.overrideSilentMode}
+                                        onToggle={() => updateAthan(s => ({ ...s, overrideSilentMode: !s.overrideSilentMode }))}
+                                    />
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Muezzin Selection */}
+                        <section>
+                            <SectionHead
+                                icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>}
+                                title="المؤذنون"
+                                subtitle="اختر صوت المؤذن المضل لكل وقت صلاة"
+                            />
+                            <div className={card}>
+                                {([
+                                    { id: 'Fajr', nameAr: 'الفجر' },
+                                    { id: 'Dhuhr', nameAr: 'الظهر' },
+                                    { id: 'Asr', nameAr: 'العصر' },
+                                    { id: 'Maghrib', nameAr: 'المغرب' },
+                                    { id: 'Isha', nameAr: 'العشاء' },
+                                ] as { id: PrayerWithAthan; nameAr: string }[]).map((prayer, i, arr) => {
+                                    const config = athanSettings.prayerConfigs[prayer.id];
+                                    const currentMuezzin = getMuezzinById(config.muezzinId);
+                                    const dlStatus = getDownloadStatus(config.muezzinId);
+                                    return (
+                                        <div key={prayer.id} className={`px-4 py-3.5 ${i < arr.length - 1 ? rowDiv : ''}`} dir="rtl">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <p className={lbl}>{prayer.nameAr}</p>
+                                                <ToggleSwitch
+                                                    on={config.enabled}
+                                                    onToggle={() => updateAthan(s => ({
+                                                        ...s,
+                                                        prayerConfigs: {
+                                                            ...s.prayerConfigs,
+                                                            [prayer.id]: { ...config, enabled: !config.enabled },
+                                                        },
+                                                    }))}
+                                                />
+                                            </div>
+                                            {config.enabled && (
+                                                <button
+                                                    onClick={() => setPrayerPickingMuezzin(prayer.id)}
+                                                    className={`w-full mt-1 px-3 py-2.5 rounded-xl text-[13px] font-amiri font-bold text-right flex items-center justify-between gap-2 border ${
+                                                        D
+                                                            ? 'bg-white/[0.05] border-white/[0.08] text-white/85'
+                                                            : 'bg-slate-50 border-slate-200 text-slate-700'
+                                                    }`}
+                                                >
+                                                    <span className="flex items-center gap-2">
+                                                        {dlStatus === 'downloaded' && (
+                                                            <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 text-green-500">
+                                                                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                                                            </svg>
+                                                        )}
+                                                        {currentMuezzin.nameAr}
+                                                    </span>
+                                                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-gray-400">
+                                                        <path d="M7 10l5 5 5-5z" />
+                                                    </svg>
+                                                </button>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </section>
+
+                        {/* Display & Style */}
+                        <section>
+                            <SectionHead
+                                icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>}
+                                title="المظهر والشاشة"
+                                subtitle="تغيير نمط شاشة الأذان وعرض الصور"
+                            />
+                            <div className={card}>
+                                <div className={`flex items-center justify-between px-4 py-3.5 ${rowDiv}`} dir="rtl">
+                                    <div>
+                                        <p className={lbl}>شاشة الأذان الكاملة</p>
+                                        <p className={sub}>عرض صور وجماليات وقت الأذان</p>
+                                    </div>
+                                    <ToggleSwitch
+                                        on={athanSettings.fullScreenEnabled}
+                                        onToggle={() => updateAthan(s => ({ ...s, fullScreenEnabled: !s.fullScreenEnabled }))}
+                                    />
+                                </div>
+                                {athanSettings.fullScreenEnabled && (
+                                    <div className="px-4 py-4" dir="rtl">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className={lbl}>نمط الشاشة المختار</p>
+                                                <p className={sub}>
+                                                    {athanSettings.screenStyle === 'mosque' ? 'المسجد الكلاسيكي' :
+                                                     athanSettings.screenStyle === 'dawn' ? 'أفق الفجر الهادئ' : 'الزخارف الهندسية'}
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={() => setShowStylePicker(true)}
+                                                className={`px-4 py-2 rounded-xl border text-[13px] font-amiri font-bold transition-all active:scale-95 ${
+                                                    D ? 'bg-gold-500/10 border-gold-500/30 text-gold-400' : 'bg-gold-50 border-gold-200 text-gold-600'
+                                                }`}
+                                            >
+                                                معاينة وتغيير النمط
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </section>
+
+                        {/* Controls & Gestures */}
+                        <section>
+                            <SectionHead
+                                icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+                                title="تحكم إضافي"
+                                subtitle="إيماءات التحكم والتذكيرات"
+                            />
+                            <div className={card}>
+                                <div className={`px-4 py-3.5 ${rowDiv}`} dir="rtl">
+                                    <p className={lbl}>الكتم السريع للأذان</p>
+                                    <p className={sub}>إيماءة لإسكات صوت الأذان فوراً</p>
+                                    <select
+                                        value={athanSettings.quickMuteGesture}
+                                        onChange={e => updateAthan(s => ({ ...s, quickMuteGesture: e.target.value }))}
+                                        className={`w-full mt-2 bg-transparent outline-none text-[13px] font-amiri font-bold appearance-none cursor-pointer p-2 rounded-lg border ${D ? 'bg-white/5 border-white/10 text-white/90' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                                    >
+                                        {QUICK_MUTE_GESTURES.map(g => (
+                                            <option key={g.id} value={g.id} className={D ? 'bg-[#0b1929] text-white' : 'bg-white text-slate-800'}>
+                                                {g.label.replace(' 📱', '').replace(' 🔘', '').replace(' 🚫', '')}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="px-4 py-3.5" dir="rtl">
+                                    <button
+                                        onClick={() => { /* maybe scroll to reminders if they were separate, but they are below */ }}
+                                        className="w-full flex items-center justify-between"
+                                    >
+                                        <p className={lbl}>تذكيرات دخول الوقت</p>
+                                    </button>
+                                    <p className={sub}>(سيتم عرض الخيارات في الأسفل)</p>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Reminders section stays but minimized or separated? */}
+                        {/* I will keep reminders separate as they are specific to each prayer */}
+                        <section>
+                            <SectionHead
+                                icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+                                title="التنبيهات المسبقة"
+                                subtitle="تذكير قبل دخول وقت الصلاة"
+                            />
+                            <div className={card}>
+                                {([
+                                    { id: 'Fajr', nameAr: 'الفجر' },
+                                    { id: 'Dhuhr', nameAr: 'الظهر' },
+                                    { id: 'Asr', nameAr: 'العصر' },
+                                    { id: 'Maghrib', nameAr: 'المغرب' },
+                                    { id: 'Isha', nameAr: 'العشاء' },
+                                ] as { id: PrayerWithAthan; nameAr: string }[]).map((prayer, i, arr) => {
+                                    const config = athanSettings.prayerConfigs[prayer.id];
+                                    return (
+                                        <div key={prayer.id} className={`px-4 py-3.5 ${i < arr.length - 1 ? rowDiv : ''}`} dir="rtl">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <p className={lbl}>{prayer.nameAr}</p>
+                                                <div className="flex items-center gap-1.5">
+                                                    {[0, 10, 15, 30].map(min => (
+                                                        <button
+                                                            key={min}
+                                                            onClick={() => updateAthan(s => ({
+                                                                ...s,
+                                                                prayerConfigs: {
+                                                                    ...s.prayerConfigs,
+                                                                    [prayer.id]: { ...config, reminderMinutes: min },
+                                                                },
+                                                            }))}
+                                                            className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-all active:scale-95 ${config.reminderMinutes === min
+                                                                ? D ? 'bg-gold-500/20 text-gold-400 border border-gold-500/30' : 'bg-gold-50 text-gold-700 border border-gold-200'
+                                                                : D ? 'bg-white/[0.03] text-white/40 border border-white/[0.05]' : 'bg-slate-50 text-slate-500 border border-slate-100'
+                                                            }`}
+                                                        >
+                                                            {min === 0 ? 'إيقاف' : `${min}د`}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </section>
+                    </div>
+                )}
+
+                {activeTab === 'appBackground' && (
+                    <div className="space-y-7 animation-slide-in">
+                        <section>
+                            <SectionHead
+                                icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>}
+                                title="خلفية التطبيق"
+                                subtitle="تخصيص صورة الخلفية للشاشات الرئيسية"
+                            />
+                            <div className={card}>
+                                <div className="p-4" dir="rtl">
+                                    <p className={`text-[13px] font-bold mb-3 ${D ? 'text-white/80' : 'text-slate-700'}`}>اختر صورة</p>
+                                    <div className="grid grid-cols-2 gap-3 mb-4">
+                                        {[
+                                            { id: 'none', url: 'none', label: 'بدون خلفية' },
+                                            { id: 'bg1', url: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?q=80&w=1080&auto=format&fit=crop', label: 'طبيعة' },
+                                            { id: 'bg2', url: 'https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?q=80&w=1080&auto=format&fit=crop', label: 'مسجد' },
+                                            { id: 'bg3', url: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?q=80&w=1080&auto=format&fit=crop', label: 'غروب' },
+                                            { id: 'bg4', url: 'https://plus.unsplash.com/premium_photo-1691031428612-4721f80beff7?q=80&w=1080&auto=format&fit=crop', label: 'زخرفة إسلامية' },
+                                            { id: 'bg5', url: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1080&auto=format&fit=crop', label: 'سماء الليل' },
+                                            { id: 'bg6', url: 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?q=80&w=1080&auto=format&fit=crop', label: 'صحراء' },
+                                            { id: 'bg7', url: 'https://images.unsplash.com/photo-1685306313850-b0d82017d1cb?q=80&w=1080&auto=format&fit=crop', label: 'أزهار' },
+                                            { id: 'custom', url: 'custom', label: 'صورة مخصصة' },
+                                        ].map(bg => (
+                                            <button
+                                                key={bg.id}
+                                                onClick={() => saveAppBg(bg.url, appBgCustom, appBgBlur)}
+                                                className={`relative h-24 rounded-xl overflow-hidden border-2 transition-all active:scale-95 ${appBgImage === bg.url ? 'border-gold-500 shadow-lg shadow-gold-500/30' : D ? 'border-white/10' : 'border-slate-200'}`}
+                                            >
+                                                {bg.url !== 'none' && bg.url !== 'custom' && (
+                                                    <img src={bg.url} alt={bg.label} className="absolute inset-0 w-full h-full object-cover" />
+                                                )}
+                                                {bg.url === 'none' && (
+                                                    <div className={`absolute inset-0 flex items-center justify-center ${D ? 'bg-[#0b1929]' : 'bg-slate-100'}`}>
+                                                        <svg className={`w-6 h-6 ${D ? 'text-white/20' : 'text-slate-300'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+                                                    </div>
+                                                )}
+                                                {bg.url === 'custom' && (
+                                                    <div className={`absolute inset-0 flex items-center justify-center ${D ? 'bg-white/5' : 'bg-slate-50'}`}>
+                                                        <svg className={`w-6 h-6 ${D ? 'text-white/40' : 'text-slate-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+                                                    </div>
+                                                )}
+                                                <div className="absolute inset-0 bg-black/40 flex items-end justify-center pb-2">
+                                                    <span className="text-white text-[11px] font-bold drop-shadow-md">{bg.label}</span>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {appBgImage === 'custom' && (
+                                        <div className="mb-4">
+                                            <p className={`text-[11px] font-bold mb-1.5 ${D ? 'text-white/40' : 'text-slate-400'}`}>اختر صورة من جهازك</p>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={e => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        const reader = new FileReader();
+                                                        reader.onload = (event) => {
+                                                            const img = new Image();
+                                                            img.onload = () => {
+                                                                const canvas = document.createElement('canvas');
+                                                                const MAX_WIDTH = 1080;
+                                                                const MAX_HEIGHT = 1920;
+                                                                let width = img.width;
+                                                                let height = img.height;
+
+                                                                if (width > height) {
+                                                                    if (width > MAX_WIDTH) {
+                                                                        height *= MAX_WIDTH / width;
+                                                                        width = MAX_WIDTH;
+                                                                    }
+                                                                } else {
+                                                                    if (height > MAX_HEIGHT) {
+                                                                        width *= MAX_HEIGHT / height;
+                                                                        height = MAX_HEIGHT;
+                                                                    }
+                                                                }
+                                                                canvas.width = width;
+                                                                canvas.height = height;
+                                                                const ctx = canvas.getContext('2d');
+                                                                ctx?.drawImage(img, 0, 0, width, height);
+                                                                const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                                                                saveAppBg('custom', dataUrl, appBgBlur);
+                                                            };
+                                                            img.src = event.target?.result as string;
+                                                        };
+                                                        reader.readAsDataURL(file);
+                                                    }
+                                                }}
+                                                className={`w-full px-3 py-2 rounded-xl text-[13px] outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gold-50 file:text-gold-700 hover:file:bg-gold-100 ${D ? 'bg-white/5 text-white focus:bg-white/10' : 'bg-slate-50 text-slate-800 focus:bg-slate-100'}`}
+                                                dir="rtl"
+                                            />
+                                            {appBgCustom && (
+                                                <div className="mt-3 h-32 rounded-xl overflow-hidden border border-white/10 relative">
+                                                    <img src={appBgCustom} alt="Custom" className="w-full h-full object-cover" />
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    <div className="mt-6">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <p className={`text-[13px] font-bold ${D ? 'text-white/80' : 'text-slate-700'}`}>درجة الضبابية (Blur)</p>
+                                            <span className={`text-[11px] font-bold ${D ? 'text-gold-400' : 'text-gold-600'}`}>{appBgBlur}px</span>
+                                        </div>
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="20"
+                                            value={appBgBlur}
+                                            onChange={e => saveAppBg(appBgImage, appBgCustom, parseInt(e.target.value))}
+                                            className="w-full accent-gold-500"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                )}
             </div>
 
             {showLocationSelector && (
                 <LocationSelector onClose={() => setShowLocationSelector(false)} />
+            )}
+
+            {prayerPickingMuezzin && (
+                <AthanMuezzinPicker
+                    selectedId={athanSettings.prayerConfigs[prayerPickingMuezzin].muezzinId}
+                    isDark={isDark}
+                    onClose={() => setPrayerPickingMuezzin(null)}
+                    onSelect={id => {
+                        updateAthan(s => ({
+                            ...s,
+                            prayerConfigs: {
+                                ...s.prayerConfigs,
+                                [prayerPickingMuezzin]: {
+                                    ...s.prayerConfigs[prayerPickingMuezzin],
+                                    muezzinId: id,
+                                },
+                            },
+                        }));
+                        const muezzin = MUEZZINS.find(m => m.id === id);
+                        if (muezzin && muezzin.cdnUrl && getDownloadStatus(id) === 'none') {
+                            downloadMuezzin(muezzin).catch(console.warn);
+                        }
+                        setPrayerPickingMuezzin(null);
+                    }}
+                />
+            )}
+
+            {showStylePicker && (
+                <AthanStylePicker
+                    currentStyle={athanSettings.screenStyle}
+                    currentCustomImage={athanSettings.customImage}
+                    isDark={isDark}
+                    onClose={() => setShowStylePicker(false)}
+                    onSave={(style, customImage) => {
+                        updateAthan(s => ({ ...s, screenStyle: style, customImage }));
+                        setShowStylePicker(false);
+                    }}
+                />
             )}
         </div>
     );

@@ -549,7 +549,7 @@ export function HadithScreen({ onBack, onDetailViewChange }: HadithScreenProps) 
     // ── Hadith list view ──
     if (viewMode === 'hadiths' || viewMode === 'search') {
         return (
-            <div className={`h-full flex flex-col transition-colors duration-300 ${isDark ? 'bg-[#0a0a14] text-white' : 'bg-[#f8fbff] text-slate-800'}`}>
+            <div className={`h-full flex flex-col transition-colors duration-300 ${isDark ? 'text-white' : 'text-slate-800'}`}>
                 <div className={`px-5 pt-4 pb-3 border-b sticky top-0 z-20 backdrop-blur-xl transition-all ${isDark ? 'bg-[#0b1929]/95 border-white/[0.08]' : 'bg-white/80 border-slate-200'}`}>
                     <div className="flex items-center justify-between mb-3">
                         <button
@@ -588,7 +588,7 @@ export function HadithScreen({ onBack, onDetailViewChange }: HadithScreenProps) 
                     )}
                 </div>
 
-                <div className={`flex-1 overflow-y-auto hide-scrollbar px-5 py-5 ${isDark ? 'bg-gradient-to-b from-[#0a0a14] to-[#0f1f38]' : 'bg-white'}`}>
+                <div className={`flex-1 overflow-y-auto hide-scrollbar px-5 py-5`}>
                     {loadingHadiths && hadiths.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full py-16 opacity-60">
                             <div className={`w-8 h-8 border-2 rounded-full animate-spin mb-4 ${isDark ? 'border-gold-400/30 border-t-gold-400' : 'border-gold-500/20 border-t-gold-500'}`} />
@@ -636,7 +636,7 @@ export function HadithScreen({ onBack, onDetailViewChange }: HadithScreenProps) 
 
     // ── Books list view ──
     return (
-        <div className={`h-full flex flex-col transition-colors duration-300 ${isDark ? 'bg-gradient-to-b from-[#0b1929] via-[#0f1f38] to-[#0a1525] text-white' : 'bg-[#f8fbff] text-slate-800'}`}>
+        <div className={`h-full flex flex-col transition-colors duration-300 ${isDark ? 'text-white' : 'text-slate-800'}`}>
             <div className={`px-5 pt-5 pb-4 sticky top-0 z-20 shadow-md transition-all ${isDark ? 'bg-[#0b1929]/90 backdrop-blur-xl' : 'bg-white/90 border-b border-slate-200'}`}>
                 <div className="flex items-center justify-between mb-4">
                     <button onClick={onBack} className={`w-10 h-10 rounded-full flex items-center justify-center active:scale-95 transition-all ${isDark ? 'bg-white/[0.08] border border-white/[0.1]' : 'bg-slate-100 border border-slate-200'}`}>

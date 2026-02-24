@@ -242,6 +242,23 @@ export async function setupNotificationChannels(): Promise<void> {
             vibration: true,
         });
         await LocalNotifications.createChannel({
+            id: 'athan',
+            name: 'الأذان',
+            description: 'أذان الصلاة — يُشغَّل تلقائياً عند دخول وقت الصلاة',
+            importance: 5,
+            visibility: 1,
+            vibration: true,
+            sound: 'athan_makkah',
+        });
+        await LocalNotifications.createChannel({
+            id: 'athan_reminder',
+            name: 'تذكير قبل الأذان',
+            description: 'تنبيه قبيل وقت الصلاة',
+            importance: 4,
+            visibility: 1,
+            vibration: true,
+        });
+        await LocalNotifications.createChannel({
             id: 'reminders',
             name: 'التذكيرات',
             description: 'أذكار الصباح والمساء والتسبيح',
@@ -266,6 +283,13 @@ export async function setupNotificationActions(): Promise<void> {
     try {
         await LocalNotifications.registerActionTypes({
             types: [
+                {
+                    id: 'ATHAN_ACTION',
+                    actions: [
+                        { id: 'mute_athan', title: '🔕 كتم الأذان' },
+                        { id: 'open_athan', title: '🕌 فتح شاشة الأذان' },
+                    ],
+                },
                 {
                     id: 'PRAYER_ACTION',
                     actions: [

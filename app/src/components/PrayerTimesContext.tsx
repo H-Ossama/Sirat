@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { fetchPrayerTimes, PrayerData, getNextPrayer } from '../services/prayerService';
 import { scheduleAllNotifications, getNotificationSettings } from '../services/notificationService';
+import { scheduleAthanNotifications, getAthanSettings } from '../services/athanService';
 import { useLocation } from '../hooks/useLocation';
 import { Capacitor } from '@capacitor/core';
 import Widget from '../services/widgetService';
@@ -172,6 +173,9 @@ export function PrayerTimesProvider({ children }: { children: React.ReactNode })
             const settings = getNotificationSettings();
             const isRamadan = data.hijriMonthEn === 'Ramadan';
             await scheduleAllNotifications(adjustedPrayers, settings, isRamadan);
+            // Schedule athan notifications
+            const athanSettings = getAthanSettings();
+            await scheduleAthanNotifications({ prayers: adjustedPrayers, settings: athanSettings });
         } catch (err: any) {
             setError(err.message || 'تعذّر تحميل مواقيت الصلاة');
             console.error(err);
