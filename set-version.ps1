@@ -13,8 +13,10 @@ $BuildGradlePath = "app/android/app/build.gradle"
 if (Test-Path $PackageJsonPath) {
     Write-Host "Updating $PackageJsonPath to $NewVersion..." -ForegroundColor Cyan
     $content = Get-Content $PackageJsonPath -Raw
-    $content = $content -replace '"version":\s*"[^"]+"', "`"version`": `"$NewVersion`""
-    Set-Content $PackageJsonPath $content
+    # Update version while preserving original formatting
+    $content = $content -replace '(?m)^(\s*"version":\s*)"[^"]+"', ('$1' + "`"$NewVersion`"")
+    # Use UTF8 without BOM for standard compliance
+    [System.IO.File]::WriteAllText((Get-Item $PackageJsonPath).FullName, $content, (New-Object System.Text.UTF8Encoding($false)))
 } else {
     Write-Error "Could not find $PackageJsonPath"
 }
@@ -22,23 +24,22 @@ if (Test-Path $PackageJsonPath) {
 # 2. Update build.gradle (versionName and increment versionCode)
 if (Test-Path $BuildGradlePath) {
     Write-Host "Updating $BuildGradlePath..." -ForegroundColor Cyan
-    $content = Get-Content $BuildGradlePath
+    $content = Get-Content $BuildGradlePath -Raw
 
-    $newContent = @()
-    foreach ($line in $content) {
-        if ($line -match 'versionName\s+"[^"]+"') {
-            $line = $line -replace 'versionName\s+"[^"]+"', "versionName `"$NewVersion`""
-            Write-Host "  Set versionName to $NewVersion" -ForegroundColor Gray
-        }
-        elseif ($line -match 'versionCode\s+(\d+)') {
-            $oldCode = [int]$matches[1]
-            $newCode = $oldCode + 1
-            $line = $line -replace 'versionCode\s+\d+', "versionCode $newCode"
-            Write-Host "  Incremented versionCode to $newCode" -ForegroundColor Gray
-        }
-        $newContent += $line
+    # Update versionName while preserving original whitespace/formatting
+    $content = $content -replace '(?m)^(\s*versionName\s+)"[^"]+"', ('$1' + "`"$NewVersion`"")
+    Write-Host "  Set versionName to $NewVersion" -ForegroundColor Gray
+
+    # Increment versionCode while preserving original whitespace/formatting
+    if ($content -match '(?m)^\s*versionCode\s+(\d+)') {
+        $oldCode = [int]$matches[1]
+        $newCode = $oldCode + 1
+        $content = $content -replace '(?m)^(\s*versionCode\s+)\d+', ('$1' + "$newCode")
+        Write-Host "  Incremented versionCode to $newCode" -ForegroundColor Gray
     }
-    Set-Content $BuildGradlePath ($newContent -join "`r`n")
+
+    # Use UTF8 without BOM
+    [System.IO.File]::WriteAllText((Get-Item $BuildGradlePath).FullName, $content, (New-Object System.Text.UTF8Encoding($false)))
 } else {
     Write-Error "Could not find $BuildGradlePath"
 }

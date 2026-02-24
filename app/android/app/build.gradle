@@ -7,8 +7,8 @@ android {
         applicationId "com.me3raj.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 3
-        versionName "3.1.1-Beta"
+$15
+        versionName "3.1.8-Beta"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -19,9 +19,9 @@ android {
     signingConfigs {
         release {
             storeFile file('release.keystore')
-            storePassword 'me3raj123'
-            keyAlias 'me3raj_alias'
-            keyPassword 'me3raj123'
+            storePassword RELEASE_STORE_PASSWORD
+            keyAlias RELEASE_KEY_ALIAS
+            keyPassword RELEASE_KEY_PASSWORD
             v1SigningEnabled true
             v2SigningEnabled true
         }
