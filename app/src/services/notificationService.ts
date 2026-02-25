@@ -66,7 +66,8 @@ function addMinutes(date: Date, minutes: number): Date {
 export async function scheduleAllNotifications(
     prayers: PrayerTime[],
     settings: NotificationSettings,
-    isRamadan: boolean = false
+    isRamadan: boolean = false,
+    athanSettings?: any
 ): Promise<void> {
     try {
         // Cancel all existing notifications first
@@ -81,8 +82,10 @@ export async function scheduleAllNotifications(
             if (!prayerOrder.includes(prayer.name)) continue;
             const prayerDate = prayerTimeToDate(prayer.time);
 
-            // Prayer alert
-            if (settings.prayerAlerts) {
+            // Prayer alert - Skip if handled by Athan notifications
+            const isAthanEnabled = athanSettings?.prayerConfigs?.[prayer.name]?.enabled && !athanSettings?.globalMuted;
+
+            if (settings.prayerAlerts && !isAthanEnabled) {
                 notifications.push({
                     id: id++,
                     title: `🕌 حان وقت ${prayer.nameAr}`,

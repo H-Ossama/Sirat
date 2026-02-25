@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { fetchPrayerTimes, PrayerData, getNextPrayer } from '../services/prayerService';
 import { scheduleAllNotifications, getNotificationSettings } from '../services/notificationService';
-import { scheduleAthanNotifications, getAthanSettings } from '../services/athanService';
+import { scheduleAthanNotifications, getAthanSettings, playAthan } from '../services/athanService';
 import { useLocation } from '../hooks/useLocation';
 import { Capacitor } from '@capacitor/core';
 import Widget from '../services/widgetService';
@@ -65,6 +65,7 @@ export function PrayerTimesProvider({ children }: { children: React.ReactNode })
 
     const { coords, city: locationCity, loading: locationLoading, error: locationError, refresh: refreshLocation } = useLocation();
     const hasInitialLoaded = useRef(false);
+    const lastPlayedPrayerRef = useRef<string | null>(null);
 
     // Update Widget
     useEffect(() => {
@@ -123,14 +124,32 @@ export function PrayerTimesProvider({ children }: { children: React.ReactNode })
                         source: inspiration.source
                     });
 
+                    // Check for Athan playback
+                    const date = new Date();
+                    const currentHHMM = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+                    const athanSettings = getAthanSettings();
+
+                    for (const p of prayerData.prayers) {
+                        if (p.time === currentHHMM) {
+                            const playKey = `${date.toDateString()}_${p.name}`;
+                            if (lastPlayedPrayerRef.current !== playKey) {
+                                lastPlayedPrayerRef.current = playKey;
+                                const config = athanSettings.prayerConfigs[p.name as keyof typeof athanSettings.prayerConfigs];
+                                if (!athanSettings.globalMuted && config && config.enabled) {
+                                    playAthan(p.name, p.nameAr);
+                                }
+                            }
+                        }
+                    }
+
                 } catch (e) {
                     console.warn('Failed to update widgets', e);
                 }
             };
             updateWidget();
 
-            // Re-update every minute to refresh "remaining" time
-            const interval = setInterval(updateWidget, 60000);
+            // Re-update every 10 seconds to refresh "remaining" time and check athan playback precisely
+            const interval = setInterval(updateWidget, 10000);
             return () => clearInterval(interval);
         }
     }, [prayerData]);

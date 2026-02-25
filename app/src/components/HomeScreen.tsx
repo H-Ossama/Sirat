@@ -49,6 +49,16 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
 
     const [appBgImage, setAppBgImage] = useState(() => localStorage.getItem('app_bg_image') || 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?q=80&w=1080&auto=format&fit=crop');
 
+    const [gender, setGender] = useState(() => localStorage.getItem('user_gender') || 'male');
+
+    useEffect(() => {
+        const handleGenderChange = () => {
+            setGender(localStorage.getItem('user_gender') || 'male');
+        };
+        window.addEventListener('user:gender-changed', handleGenderChange);
+        return () => window.removeEventListener('user:gender-changed', handleGenderChange);
+    }, []);
+
     useEffect(() => {
         const handleBgChange = () => {
             setAppBgImage(localStorage.getItem('app_bg_image') || 'none');
@@ -459,6 +469,33 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
                     ))}
                 </div>
             </div>
+
+            {/* Women's Section Banner (Visible only for females) */}
+            {gender === 'female' && (
+                <div className="px-5 mb-5" dir="rtl">
+                    <button
+                        onClick={() => onNavigate('women')}
+                        className={`w-full p-5 rounded-[2rem] flex items-center justify-between border relative overflow-hidden group ${isDark 
+                            ? 'bg-gradient-to-br from-pink-500/[0.1] to-purple-500/[0.05] border-pink-400/[0.15]' 
+                            : 'bg-gradient-to-br from-pink-50 to-purple-50 border-pink-100 shadow-sm'}`}
+                    >
+                        <div className="relative z-10 flex items-center gap-4">
+                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDark ? 'bg-pink-400/20 text-pink-300' : 'bg-pink-100 text-pink-600'}`}>
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
+                            </div>
+                            <div className="text-right">
+                                <h3 className={`font-bold font-amiri text-lg ${isDark ? 'text-pink-100' : 'text-pink-900'}`}>ركن المرأة المسلمة</h3>
+                                <p className={`text-xs mt-1 ${isDark ? 'text-pink-200/60' : 'text-pink-700/60'}`}>أحاديث، إرشادات، وأحكام شرعية</p>
+                            </div>
+                        </div>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-transform group-active:-translate-x-1 ${isDark ? 'bg-pink-400/10 text-pink-300' : 'bg-white text-pink-500 shadow-sm'}`}>
+                            <svg className="w-4 h-4 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                        </div>
+                    </button>
+                </div>
+            )}
 
             {/* Hidden Share Card for Hadith */}
             <div className="overflow-hidden h-0 w-0 absolute pointer-events-none">

@@ -9,4 +9,6 @@
     <color name="widget_text_secondary">#B0C4DE</color>
     <color name="widget_text_accent">#D4A520</color>
     <color name="widget_icon_tint">#D4A520</color>
+    <color name="widget_divider">#1AFFFFFF</color>
+    <color name="widget_header_bg">#1AFFFFFF</color>
 </resources>

@@ -1,45 +1,93 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_athkar_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_background_premium"
-    android:padding="16dp">
+    android:orientation="vertical">
 
-    <LinearLayout
+    <!-- Header -->
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:layout_centerInParent="true">
+        android:layout_height="wrap_content"
+        android:background="@drawable/widget_header_bg"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp">
+
+        <ImageView
+            android:id="@+id/widget_header_icon"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:src="@android:drawable/ic_menu_sort_by_size"
+            android:tint="@color/widget_text_accent" />
 
         <TextView
             android:id="@+id/athkar_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="8dp"
+            android:layout_toEndOf="@id/widget_header_icon"
+            android:letterSpacing="0.05"
             android:text="أذكار اليوم"
             android:textColor="@color/widget_text_accent"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </RelativeLayout>
 
-        <TextView
-            android:id="@+id/athkar_status"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="أذكار الصباح: ☀️"
-            android:textColor="@color/widget_text_primary"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="4dp" />
+    <!-- Content -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="16dp">
 
-        <TextView
-            android:id="@+id/athkar_msg"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="اضغط للقراءة"
-            android:textColor="@color/widget_text_secondary"
-            android:textSize="12sp" />
+        <!-- Decorative background icon -->
+        <ImageView
+            android:id="@+id/widget_ic_bg"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentBottom="true"
+            android:layout_marginEnd="-15dp"
+            android:layout_marginBottom="-15dp"
+            android:alpha="0.05"
+            android:src="@android:drawable/ic_menu_sort_by_size"
+            android:tint="@color/widget_text_accent" />
 
-    </LinearLayout>
-</RelativeLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/athkar_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="أذكار الصباح: ☀️"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/athkar_msg"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/widget_badge_bg"
+                android:paddingStart="16dp"
+                android:paddingTop="6dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="6dp"
+                android:text="اضغط للقراءة"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+    </RelativeLayout>
+</LinearLayout>

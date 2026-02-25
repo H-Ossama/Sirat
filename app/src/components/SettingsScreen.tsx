@@ -20,7 +20,9 @@ import {
     getMuezzinById,
     downloadMuezzin,
     getDownloadStatus,
+    playAthan,
 } from '../services/athanService';
+import { LocalNotifications } from '@capacitor/local-notifications';
 import AthanMuezzinPicker from './AthanMuezzinPicker';
 import AthanStylePicker from './AthanStylePicker';
 
@@ -61,6 +63,16 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
     const [lastCheckedText, setLastCheckedText] = useState('---');
     const [checkingUpdate, setCheckingUpdate] = useState(false);
     const [updateStatusText, setUpdateStatusText] = useState('');
+    const [devClicks, setDevClicks] = useState(0);
+    const [devMode, setDevMode] = useState(() => localStorage.getItem('devModeUnlocked') === 'true');
+
+    const [gender, setGender] = useState<'male' | 'female'>(() => (localStorage.getItem('user_gender') as 'male' | 'female') || 'male');
+
+    const handleGenderChange = (g: 'male' | 'female') => {
+        setGender(g);
+        localStorage.setItem('user_gender', g);
+        window.dispatchEvent(new CustomEvent('user:gender-changed'));
+    };
 
     const [appBgImage, setAppBgImage] = useState(localStorage.getItem('app_bg_image') || 'https://images.unsplash.com/photo-1502082553048-f009c37129b9?q=80&w=1080&auto=format&fit=crop');
     const [appBgCustom, setAppBgCustom] = useState(localStorage.getItem('app_bg_custom') || '');
@@ -398,6 +410,37 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
                             </div>
                         </section>
 
+                        {/* User Gender */}
+                        <section>
+                            <SectionHead
+                                icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>}
+                                title="ملفي الشخصي"
+                                subtitle="تخصيص التجربة حسب الجنس"
+                            />
+                            <div className={card}>
+                                <div className={`flex items-center justify-between px-4 py-3.5`} dir="rtl">
+                                    <div>
+                                        <p className={lbl}>الجنس</p>
+                                        <p className={sub}>يتم تخصيص المحتوى بناءً عليه</p>
+                                    </div>
+                                    <div className={`flex items-center gap-1 p-1 rounded-xl border ${D ? 'bg-white/5 border-white/5' : 'bg-slate-100 border-slate-200'}`}>
+                                        <button 
+                                            onClick={() => handleGenderChange('male')}
+                                            className={`px-4 py-1.5 rounded-lg text-[13px] font-bold transition-all ${gender === 'male' ? (D ? 'bg-white text-slate-900 shadow-sm' : 'bg-white text-slate-800 shadow-sm') : (D ? 'text-white/40 hover:text-white/60' : 'text-slate-400 hover:text-slate-600')}`}
+                                        >
+                                            ذكر
+                                        </button>
+                                        <button 
+                                            onClick={() => handleGenderChange('female')}
+                                            className={`px-4 py-1.5 rounded-lg text-[13px] font-bold transition-all ${gender === 'female' ? (D ? 'bg-white text-slate-900 shadow-sm' : 'bg-white text-slate-800 shadow-sm') : (D ? 'text-white/40 hover:text-white/60' : 'text-slate-400 hover:text-slate-600')}`}
+                                        >
+                                            أنثى
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
                         {/* Prayer Times Config */}
                         <section>
                             <SectionHead
@@ -563,22 +606,37 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
                                     <img src="/assets/icons/icon-512.webp" alt="App Icon" className="w-full h-full object-contain rounded-2xl" />
                                 </div>
                                 <h2 className={`text-2xl font-amiri font-bold mb-1 ${D ? 'text-white' : 'text-slate-800'}`}>تطبيق Sirat</h2>
-<p className={`text-[13px] ${D ? 'text-white/40' : 'text-slate-500'} mb-3`}>رفيقك الإسلامي الشامل</p>
-                                    <a 
-                                        href="https://github.com/H-Ossama/Sirat" 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-bold transition-all ${
-                                            D ? 'bg-white/[0.05] text-white/60 border border-white/10' : 'bg-slate-100 text-slate-600 border border-slate-200'
+                                <p className={`text-[13px] ${D ? 'text-white/40' : 'text-slate-500'} mb-3`}>رفيقك الإسلامي الشامل</p>
+                                <a
+                                    href="https://github.com/H-Ossama/Sirat"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-bold transition-all ${D ? 'bg-white/[0.05] text-white/60 border border-white/10' : 'bg-slate-100 text-slate-600 border border-slate-200'
                                         } active:scale-95`}
-                                    >
-                                        <GithubIcon className="w-3.5 h-3.5" />
-                                        <span>مشروع مفتوح المصدر على GitHub</span>
-                                    </a>
+                                >
+                                    <GithubIcon className="w-3.5 h-3.5" />
+                                    <span>مشروع مفتوح المصدر على GitHub</span>
+                                </a>
                             </div>
 
                             <div className={card}>
-                                <div className={`flex items-center justify-between px-5 py-4 ${rowDiv}`} dir="rtl">
+                                <div className={`flex items-center justify-between px-5 py-4 ${rowDiv} cursor-pointer select-none`} dir="rtl" onClick={() => {
+                                    if (devMode) return;
+                                    const clicks = devClicks + 1;
+                                    if (clicks >= 5) {
+                                        setDevClicks(0);
+                                        const code = prompt("أدخل كلمة المرور الخاصة بالمطور:");
+                                        if (code === "9568") {
+                                            setDevMode(true);
+                                            localStorage.setItem('devModeUnlocked', 'true');
+                                            alert("تم تفعيل وضع المطور!");
+                                        } else {
+                                            alert("كلمة المرور خاطئة!");
+                                        }
+                                    } else {
+                                        setDevClicks(clicks);
+                                    }
+                                }}>
                                     <span className={lbl}>الإصدار الحالي</span>
                                     <span className={`text-[12px] font-sans font-bold px-3 py-1 rounded-full ${D ? 'bg-white/[0.05] text-gold-400' : 'bg-gold-50 text-gold-600'}`}>{currentVersion}</span>
                                 </div>
@@ -649,7 +707,7 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
                                             } ${checkingUpdate ? 'opacity-60' : ''}`}
                                     >
                                         <svg className={`w-4 h-4 ${checkingUpdate ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                                            {checkingUpdate 
+                                            {checkingUpdate
                                                 ? <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m14.836 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-14.836-2m14.836 2H15" />
                                                 : <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                                             }
@@ -702,6 +760,62 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
                                 </div>
                             </div>
                         </section>
+
+                        {devMode && (
+                            <section className="animation-fade-in mt-6">
+                                <SectionHead
+                                    icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>}
+                                    title="أدوات المطور"
+                                    subtitle="اختبار ميزات التطبيق"
+                                />
+                                <div className={card} dir="rtl">
+                                    <div className="px-4 py-4 flex flex-col gap-3">
+                                        <button
+                                            onClick={() => {
+                                                playAthan('Fajr', 'الفجر');
+                                            }}
+                                            className={`w-full py-3 rounded-2xl border flex items-center justify-center gap-2 text-[12px] font-bold transition-all active:scale-[0.98] ${D ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' : 'bg-indigo-50 text-indigo-600 border-indigo-200'}`}
+                                        >
+                                            اختبار تشغيل شاشة وصوت الأذان
+                                        </button>
+                                        <button
+                                            onClick={async () => {
+                                                try {
+                                                    await LocalNotifications.schedule({
+                                                        notifications: [{
+                                                            id: 9999,
+                                                            title: '🕌 اختبار أذان الفجر',
+                                                            body: 'هذا إشعار تجريبي لاختبار الأذان والأصوات',
+                                                            schedule: { at: new Date(Date.now() + 2000) },
+                                                            sound: 'athan_makkah',
+                                                            channelId: 'athan',
+                                                            smallIcon: 'ic_stat_icon',
+                                                            iconColor: '#d4a520',
+                                                            extra: { type: 'athan', screen: 'home', prayer: 'Fajr', prayerAr: 'الفجر', muezzinId: 'makkah_classic' }
+                                                        }]
+                                                    });
+                                                    alert("سيصل الإشعار بعد ثانيتين");
+                                                } catch (e: any) {
+                                                    alert(e?.message || "فشل جدولة الإشعار");
+                                                }
+                                            }}
+                                            className={`w-full py-3 rounded-2xl border flex items-center justify-center gap-2 text-[12px] font-bold transition-all active:scale-[0.98] ${D ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 'bg-amber-50 text-amber-600 border-amber-200'}`}
+                                        >
+                                            اختبار إشعار الأذان الخلفي
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setDevMode(false);
+                                                localStorage.removeItem('devModeUnlocked');
+                                            }}
+                                            className={`w-full py-3 rounded-2xl border flex items-center justify-center gap-2 text-[12px] font-bold transition-all active:scale-[0.98] ${D ? 'bg-red-500/20 text-red-300 border-red-500/30' : 'bg-red-50 text-red-600 border-red-200'}`}
+                                        >
+                                            إلغاء وضع المطور
+                                        </button>
+                                    </div>
+                                </div>
+                            </section>
+                        )}
                     </div>
                 )}
 
@@ -796,11 +910,10 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
                                             {config.enabled && (
                                                 <button
                                                     onClick={() => setPrayerPickingMuezzin(prayer.id)}
-                                                    className={`w-full mt-1 px-3 py-2.5 rounded-xl text-[13px] font-amiri font-bold text-right flex items-center justify-between gap-2 border ${
-                                                        D
-                                                            ? 'bg-white/[0.05] border-white/[0.08] text-white/85'
-                                                            : 'bg-slate-50 border-slate-200 text-slate-700'
-                                                    }`}
+                                                    className={`w-full mt-1 px-3 py-2.5 rounded-xl text-[13px] font-amiri font-bold text-right flex items-center justify-between gap-2 border ${D
+                                                        ? 'bg-white/[0.05] border-white/[0.08] text-white/85'
+                                                        : 'bg-slate-50 border-slate-200 text-slate-700'
+                                                        }`}
                                                 >
                                                     <span className="flex items-center gap-2">
                                                         {dlStatus === 'downloaded' && (
@@ -846,14 +959,13 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
                                                 <p className={lbl}>نمط الشاشة المختار</p>
                                                 <p className={sub}>
                                                     {athanSettings.screenStyle === 'mosque' ? 'المسجد الكلاسيكي' :
-                                                     athanSettings.screenStyle === 'dawn' ? 'أفق الفجر الهادئ' : 'الزخارف الهندسية'}
+                                                        athanSettings.screenStyle === 'dawn' ? 'أفق الفجر الهادئ' : 'الزخارف الهندسية'}
                                                 </p>
                                             </div>
                                             <button
                                                 onClick={() => setShowStylePicker(true)}
-                                                className={`px-4 py-2 rounded-xl border text-[13px] font-amiri font-bold transition-all active:scale-95 ${
-                                                    D ? 'bg-gold-500/10 border-gold-500/30 text-gold-400' : 'bg-gold-50 border-gold-200 text-gold-600'
-                                                }`}
+                                                className={`px-4 py-2 rounded-xl border text-[13px] font-amiri font-bold transition-all active:scale-95 ${D ? 'bg-gold-500/10 border-gold-500/30 text-gold-400' : 'bg-gold-50 border-gold-200 text-gold-600'
+                                                    }`}
                                             >
                                                 معاينة وتغيير النمط
                                             </button>
@@ -934,7 +1046,7 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
                                                             className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-all active:scale-95 ${config.reminderMinutes === min
                                                                 ? D ? 'bg-gold-500/20 text-gold-400 border border-gold-500/30' : 'bg-gold-50 text-gold-700 border border-gold-200'
                                                                 : D ? 'bg-white/[0.03] text-white/40 border border-white/[0.05]' : 'bg-slate-50 text-slate-500 border border-slate-100'
-                                                            }`}
+                                                                }`}
                                                         >
                                                             {min === 0 ? 'إيقاف' : `${min}د`}
                                                         </button>

@@ -18,6 +18,9 @@ const config: CapacitorConfig = {
             iconColor: '#D4A528',
             sound: 'beep.wav',
         },
+        CapacitorHttp: {
+            enabled: true,
+        },
     },
 };
 

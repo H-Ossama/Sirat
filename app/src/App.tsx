@@ -53,8 +53,9 @@ const SettingsScreen = lazy(() => import('./components/SettingsScreen').then(m =
 const HadithScreen = lazy(() => import('./components/HadithScreen').then(m => ({ default: m.HadithScreen })));
 const BadgesScreen = lazy(() => import('./components/BadgesScreen').then(m => ({ default: m.BadgesScreen })));
 const ProfileScreen = lazy(() => import('./components/ProfileScreen').then(m => ({ default: m.ProfileScreen })));
+const WomenScreen = lazy(() => import('./components/WomenScreen').then(m => ({ default: m.WomenScreen })));
 
-type Screen = 'home' | 'adhkar' | 'videos' | 'quran' | 'hadith' | 'duas' | 'tasbih' | 'calendar' | 'qibla' | 'settings' | 'garden' | 'deeds' | 'zakat' | 'khatma' | 'lastTen' | 'badges' | 'profile';
+type Screen = 'home' | 'adhkar' | 'videos' | 'quran' | 'hadith' | 'duas' | 'tasbih' | 'calendar' | 'qibla' | 'settings' | 'garden' | 'deeds' | 'zakat' | 'khatma' | 'lastTen' | 'badges' | 'profile' | 'women';
 
 /* ─── Tab Bar ─── */
 function TabBar({ activeTab, onTabChange }: { activeTab: Screen; onTabChange: (tab: Screen) => void }) {
@@ -542,7 +543,7 @@ function AppContent() {
         const urlListener = CapApp.addListener('appUrlOpen', (data) => {
             if (data.url.includes('me3raj://app/')) {
                 const path = data.url.split('me3raj://app/')[1];
-                if (path && ['home', 'adhkar', 'videos', 'quran', 'hadith', 'duas', 'tasbih', 'calendar', 'qibla', 'settings', 'garden', 'deeds', 'zakat', 'khatma', 'lastTen', 'badges', 'profile'].includes(path)) {
+                if (path && ['home', 'adhkar', 'videos', 'quran', 'hadith', 'duas', 'tasbih', 'calendar', 'qibla', 'settings', 'garden', 'deeds', 'zakat', 'khatma', 'lastTen', 'badges', 'profile', 'women'].includes(path)) {
                     navigateTo(path as Screen);
                 }
             }
