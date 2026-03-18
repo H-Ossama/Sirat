@@ -8,7 +8,7 @@
     android:padding="16dp">
 
     <!-- Accent Bar Top -->
-    <View
+    <FrameLayout
         android:id="@+id/accent_bar"
         android:layout_width="40dp"
         android:layout_height="4dp"

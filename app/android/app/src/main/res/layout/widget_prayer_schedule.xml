@@ -14,7 +14,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="6dp">
 
-        <View
+        <FrameLayout
             android:id="@+id/accent_bar"
             android:layout_width="32dp"
             android:layout_height="3dp"
@@ -65,7 +65,7 @@
             android:textStyle="bold" />
     </LinearLayout>
 
-    <View
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:layout_marginStart="8dp"
@@ -103,7 +103,7 @@
             android:textStyle="bold" />
     </LinearLayout>
 
-    <View
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:layout_marginStart="8dp"
@@ -141,7 +141,7 @@
             android:textStyle="bold" />
     </LinearLayout>
 
-    <View
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:layout_marginStart="8dp"
@@ -179,7 +179,7 @@
             android:textStyle="bold" />
     </LinearLayout>
 
-    <View
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:layout_marginStart="8dp"

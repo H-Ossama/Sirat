@@ -145,6 +145,8 @@ export function QuranScreenV2({ onBack, autoOpenSurahId, autoOpenPage, autoOpenV
   const [imageError, setImageError] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(() => localStorage.getItem('mushaf_banner_dismissed') === 'true');
   const downloadController = useRef<AbortController | null>(null);
+  const trackTouchStartY = useRef<number>(0);
+  const [pendingVerseScroll, setPendingVerseScroll] = useState<string | null>(null);
   const activeIndexRef = useRef<HTMLButtonElement | null>(null);
 
   // Scroll to active index item
@@ -187,27 +189,37 @@ export function QuranScreenV2({ onBack, autoOpenSurahId, autoOpenPage, autoOpenV
 
   // Handle auto-open verse selection and scrolling
   useEffect(() => {
-    if (!loading && autoOpenVerseId && verses.length > 0) {
-      const verse = verses.find(v => v.verseNumber === autoOpenVerseId);
-      if (verse) {
-        setSelectedVerse(verse);
+    if (!loading && (autoOpenVerseId || pendingVerseScroll) && verses.length > 0) {
+      let targetId = '';
+      let targetVerse: MushafVerse | undefined;
+
+      if (autoOpenVerseId) {
+        targetVerse = verses.find(v => v.verseNumber === autoOpenVerseId);
+        if (targetVerse) targetId = `verse-${targetVerse.verseKey.replace(':', '-')}`;
+      } else if (pendingVerseScroll) {
+        targetId = pendingVerseScroll;
+        const [, surahStr, verseStr] = targetId.split('-');
+        targetVerse = verses.find(vo => vo.chapterId === parseInt(surahStr) && vo.verseNumber === parseInt(verseStr));
+      }
+
+      if (targetId && targetVerse) {
+        const finalVerse = targetVerse;
         setTimeout(() => {
-          const el = document.getElementById(`verse-${verse.verseKey.replace(':', '-')}`);
+          const el = document.getElementById(targetId);
           if (el) {
             el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setSelectedVerse(finalVerse);
           }
-          // Cleanup props after use to avoid re-triggering on manual navigation
           onAutoOpenConsumed?.();
-        }, 500);
+          setPendingVerseScroll(null);
+        }, 600); // Slightly longer timeout to ensure DOM/Menu state is settled
       } else {
-        // Verse not on this page? That shouldn't happen if page is correctly set.
-        onAutoOpenConsumed?.();
+        // Fallback for surah/page only navigations or missing verse
+        if (!autoOpenVerseId && !pendingVerseScroll) onAutoOpenConsumed?.();
+        setPendingVerseScroll(null);
       }
-    } else if (!loading && !autoOpenVerseId && (autoOpenSurahId || autoOpenPage)) {
-      // Just auto-opened a surah/page without a specific verse
-      onAutoOpenConsumed?.();
     }
-  }, [loading, verses, autoOpenVerseId]);
+  }, [loading, verses, autoOpenVerseId, pendingVerseScroll]);
 
   useEffect(() => {
     setImageError(false);
@@ -271,6 +283,21 @@ export function QuranScreenV2({ onBack, autoOpenSurahId, autoOpenPage, autoOpenV
     return saved ? JSON.parse(saved) : null;
   });
 
+  // Track and save the last interacted ayah
+  useEffect(() => {
+    if (selectedVerse) {
+      const sName = surahs.find(s => s.number === selectedVerse.chapterId)?.name || '';
+      const pos = { 
+        surah: selectedVerse.chapterId, 
+        verse: selectedVerse.verseNumber, 
+        page: currentPage, 
+        surahName: sName 
+      };
+      setLastRead(pos);
+      localStorage.setItem('mushaf_last_read_pos', JSON.stringify(pos));
+    }
+  }, [selectedVerse, currentPage, surahs]);
+
   // Update local storage when tafsir source changes
   useEffect(() => {
     localStorage.setItem('mushaf_tafsir_id', activeTafsirId.toString());
@@ -314,8 +341,8 @@ export function QuranScreenV2({ onBack, autoOpenSurahId, autoOpenPage, autoOpenV
           setVerses(data);
           localStorage.setItem('mushaf_last_page', currentPage.toString());
 
-          // Update last read (global position)
-          if (data.length > 0) {
+          // Update last read (minimal fallback only if nothing saved)
+          if (data.length > 0 && !localStorage.getItem('mushaf_last_read_pos')) {
             const firstV = data[0];
             const sName = surahs.find(s => s.number === firstV.chapterId)?.name || '';
             const pos = { surah: firstV.chapterId, verse: firstV.verseNumber, page: currentPage, surahName: sName };
@@ -409,13 +436,18 @@ export function QuranScreenV2({ onBack, autoOpenSurahId, autoOpenPage, autoOpenV
 
   // Swipe handling
   const touchStartX = useRef<number>(0);
+  const touchStartY = useRef<number>(0);
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
   };
   const handleTouchEnd = (e: React.TouchEvent) => {
-    const diff = touchStartX.current - e.changedTouches[0].clientX;
-    if (Math.abs(diff) > 60) {
-      if (diff > 0) handlePrevPage();
+    const diffX = touchStartX.current - e.changedTouches[0].clientX;
+    const diffY = touchStartY.current - e.changedTouches[0].clientY;
+    
+    // Only switch pages if horizontal movement is significant AND horizontally dominant
+    if (Math.abs(diffX) > 90 && Math.abs(diffX) > Math.abs(diffY) * 2) {
+      if (diffX > 0) handlePrevPage();
       else handleNextPage();
     }
   };
@@ -507,8 +539,10 @@ export function QuranScreenV2({ onBack, autoOpenSurahId, autoOpenPage, autoOpenV
   };
 
   // Render variables
-  const isNight = theme === 'dark' || pageTheme === 'black';
-  const themeClass = isNight ? 'mushaf-v2-night' : `mushaf-v2-theme-${pageTheme}`;
+  // The page theme picked by the user takes priority.
+  // We only default to 'night' if the app is in dark mode and no specific light theme is active.
+  const isNight = pageTheme === 'black' || (theme === 'dark' && pageTheme !== 'cream' && pageTheme !== 'green');
+  const themeClass = `mushaf-v2-theme-${pageTheme}`;
 
   // Group words into lines for Uthmani display
   const lines: { [key: number]: any[] } = {};
@@ -591,7 +625,9 @@ export function QuranScreenV2({ onBack, autoOpenSurahId, autoOpenPage, autoOpenV
       )}
 
       {/* Main Page Area */}
-      <div className="flex-1 relative w-full h-full overflow-hidden flex flex-col"
+      <div 
+        className={`flex-1 relative w-full h-full ${fontScale > 1 ? 'overflow-auto' : 'overflow-hidden'} flex flex-col hide-scrollbar`}
+        style={{ touchAction: fontScale > 1 ? 'auto' : 'pan-y' }}
         onClick={() => setSelectedVerse(null)}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}>
@@ -599,9 +635,36 @@ export function QuranScreenV2({ onBack, autoOpenSurahId, autoOpenPage, autoOpenV
 
 
         {/* Main Mushaf Content */}
-        {viewMode === 'image' ? (
-          <div className={`mushaf-v2-page shadow-2xl mx-auto w-full max-w-2xl bg-[var(--mushaf-bg)] relative z-0 transition-transform duration-300 pb-0 px-0`}
-            style={{ transform: fontScale !== 1 ? `scale(${fontScale})` : 'none', transformOrigin: 'top center' }}>
+        <div className="flex-1 relative w-full flex items-center">
+
+
+          {viewMode === 'image' ? (
+            <div className={`mushaf-v2-page shadow-2xl mx-auto bg-[var(--mushaf-bg)] relative z-0 pb-0 px-0`}
+            style={{ 
+              width: fontScale > 1 ? `${100 * fontScale}%` : '100%',
+              maxWidth: fontScale > 1 ? 'none' : '42rem',
+              aspectRatio: '1/1.55',
+              height: 'auto',
+              minHeight: '100%'
+            }}>
+
+            {/* Side Navigation Buttons (Floating - Only in Image Mode) */}
+            <button 
+              onClick={(e) => { e.stopPropagation(); handlePrevPage(); }}
+              className={`fixed right-1 top-1/2 -translate-y-1/2 z-50 p-2 rounded-full bg-black/5 backdrop-blur-sm hover:bg-black/10 active:scale-90 transition-all text-[var(--mushaf-accent)] flex items-center justify-center ${currentPage === 1 ? 'opacity-0 pointer-events-none' : 'opacity-40 hover:opacity-100'}`}
+              title="السابق"
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+            </button>
+
+            <button 
+              onClick={(e) => { e.stopPropagation(); handleNextPage(); }}
+              className={`fixed left-1 top-1/2 -translate-y-1/2 z-50 p-2 rounded-full bg-black/5 backdrop-blur-sm hover:bg-black/10 active:scale-90 transition-all text-[var(--mushaf-accent)] flex items-center justify-center ${currentPage === 604 ? 'opacity-0 pointer-events-none' : 'opacity-40 hover:opacity-100'}`}
+              title="التالي"
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+            </button>
+
 
             <div className="absolute inset-0 z-0">
               {!imageError ? (
@@ -654,10 +717,10 @@ export function QuranScreenV2({ onBack, autoOpenSurahId, autoOpenPage, autoOpenV
                   })}
                 </div>
               )}
+              </div>
             </div>
-          </div>
-        ) : (
-          /* Text-Based Mode */
+          ) : (
+            /* Text-Based Mode */
           <div className={`mushaf-v2-page shadow-2xl mx-auto w-full max-w-2xl bg-[var(--mushaf-bg)] relative z-0 flex flex-col h-full overflow-hidden ${fontType !== 'uthmani' ? `mushaf-v2-font-${fontType}` : ''}`} key={`page-${currentPage}-${viewMode}`}>
             {!isNight && <div className="mushaf-v2-frame" />}
 
@@ -734,6 +797,7 @@ export function QuranScreenV2({ onBack, autoOpenSurahId, autoOpenPage, autoOpenV
           </div>
         )}
       </div>
+    </div>
 
       {/* Overlays */}
       {selectedVerse && (
@@ -787,7 +851,14 @@ export function QuranScreenV2({ onBack, autoOpenSurahId, autoOpenPage, autoOpenV
 
             {lastRead && !indexSearch && (
               <div className="px-1 mb-4">
-                <button onClick={() => { setCurrentPage(lastRead.page); setShowIndex(false); }} className={`w-full p-4 rounded-2xl flex items-center justify-between border-2 animate-pulse ${isNight ? 'bg-gold-500/10 border-gold-500/20 text-gold-400' : 'bg-gold-50 border-gold-200 text-gold-700'}`}>
+                <button onClick={() => { 
+                  if (!lastRead) return;
+                  setCurrentPage(lastRead.page); 
+                  if (lastRead.surah && lastRead.verse) {
+                    setPendingVerseScroll(`verse-${lastRead.surah}-${lastRead.verse}`);
+                  }
+                  setShowIndex(false); 
+                }} className={`w-full p-4 rounded-2xl flex items-center justify-between border-2 animate-pulse ${isNight ? 'bg-gold-500/10 border-gold-500/20 text-gold-400' : 'bg-gold-50 border-gold-200 text-gold-700'}`}>
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-gold-500 text-black flex items-center justify-center"><BookmarkIcon className="w-5 h-5" /></div>
                     <div className="text-right">
@@ -862,9 +933,9 @@ export function QuranScreenV2({ onBack, autoOpenSurahId, autoOpenPage, autoOpenV
             <div>
               <p className="text-sm font-bold mb-4 opacity-60">حجم الخط</p>
               <div className="flex items-center gap-6 px-2">
-                <span className="text-2xl opacity-40 font-amiri">A+</span>
-                <input type="range" min="0.8" max="1.6" step="0.1" value={fontScale} onChange={e => setFontScale(parseFloat(e.target.value))} className="flex-1 accent-[var(--mushaf-accent)] h-1.5 bg-black/10 rounded-lg appearance-none cursor-pointer" />
                 <span className="text-lg opacity-40 font-amiri">A-</span>
+                <input type="range" min="0.8" max="1.6" step="0.1" value={fontScale} onChange={e => setFontScale(parseFloat(e.target.value))} className="flex-1 accent-[var(--mushaf-accent)] h-1.5 bg-black/10 rounded-lg appearance-none cursor-pointer" />
+                <span className="text-2xl opacity-40 font-amiri">A+</span>
               </div>
             </div>
             {viewMode === 'text' && (
@@ -981,9 +1052,9 @@ export function QuranScreenV2({ onBack, autoOpenSurahId, autoOpenPage, autoOpenV
             <div className="w-32 h-32 rounded-[2.5rem] bg-gold-400/10 border border-gold-400/20 flex items-center justify-center mb-12 shadow-2xl overflow-hidden p-6">
               <img src="/assets/icons/icon-512.webp" alt="Sirat" className="w-full h-full object-contain" />
             </div>
-            <p className="text-[64px] font-amiri text-white leading-[1.6] mb-16 px-16 drop-shadow-lg">﴿ {selectedVerse.textUthmani} ﴾</p>
+            <p className="text-[64px] font-amiri text-white leading-[1.6] mb-16 px-16 drop-shadow-lg">﴿ {selectedVerse?.textUthmani} ﴾</p>
             <div className="flex flex-col items-center gap-4">
-              <p className="text-[36px] font-amiri text-gold-400 font-bold">سورة {surahs.find(s => s.number === selectedVerse.chapterId)?.name} - الآية {toArabicNum(selectedVerse.verseNumber)}</p>
+              <p className="text-[36px] font-amiri text-gold-400 font-bold">سورة {surahs.find(s => s.number === selectedVerse?.chapterId)?.name} - الآية {selectedVerse ? toArabicNum(selectedVerse.verseNumber) : ''}</p>
               <div className="w-48 h-1.5 bg-gold-500/20 rounded-full my-6" />
               <p className="text-[26px] font-amiri text-white/50">تمت المشاركة عبر تطبيق Sirat 🌙</p>
             </div>
