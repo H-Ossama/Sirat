@@ -25,12 +25,12 @@ public class AthkarWidget extends AppWidgetProvider {
         views.setTextViewText(R.id.athkar_msg, msg);
 
         Intent intent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("me3raj://app/adhkar"));
-        PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, 
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent pendingIntent = PendingIntent.getActivity(context, 103, intent, 
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         views.setOnClickPendingIntent(R.id.widget_athkar_root, pendingIntent);
-
-        ComponentName thisWidget = new ComponentName(context, AthkarWidget.class);
-        appWidgetManager.updateAppWidget(thisWidget, views);
+        
+        appWidgetManager.updateAppWidget(appWidgetId, views);
     }
 
     @Override

@@ -1,6 +1,6 @@
 import { useState, useEffect, Suspense, lazy, useRef } from 'react';
 import { HomeScreen } from './components/HomeScreen';
-import { HomeIcon, PlayIcon, BeadsIcon, SettingsIcon, HadithIcon } from './components/Icons';
+import { HomeIcon, PlayIcon, BeadsIcon, SettingsIcon, HadithIcon, BookIcon } from './components/Icons';
 import { requestNotificationPermission, setupNotificationChannels, setupNotificationActions, listenToNotificationActions } from './services/notificationService';
 import { completeDeed } from './services/rewardsStore';
 import { App as CapApp } from '@capacitor/app';
@@ -39,7 +39,7 @@ import type { PluginListenerHandle } from '@capacitor/core';
 const OnboardingScreen = lazy(() => import('./components/OnboardingScreen').then(m => ({ default: m.OnboardingScreen })));
 const AdhkarScreen = lazy(() => import('./components/AdhkarScreen').then(m => ({ default: m.AdhkarScreen })));
 const VideosScreen = lazy(() => import('./components/VideosScreen').then(m => ({ default: m.VideosScreen })));
-const QuranScreen = lazy(() => import('./components/QuranScreen').then(m => ({ default: m.QuranScreen })));
+const QuranScreenV2 = lazy(() => import('./components/QuranScreenV2').then(m => ({ default: m.QuranScreenV2 })));
 const DuasScreen = lazy(() => import('./components/DuasScreen').then(m => ({ default: m.DuasScreen })));
 const TasbihScreen = lazy(() => import('./components/TasbihScreen').then(m => ({ default: m.TasbihScreen })));
 const CalendarScreen = lazy(() => import('./components/CalendarScreen').then(m => ({ default: m.CalendarScreen })));
@@ -54,8 +54,9 @@ const HadithScreen = lazy(() => import('./components/HadithScreen').then(m => ({
 const BadgesScreen = lazy(() => import('./components/BadgesScreen').then(m => ({ default: m.BadgesScreen })));
 const ProfileScreen = lazy(() => import('./components/ProfileScreen').then(m => ({ default: m.ProfileScreen })));
 const WomenScreen = lazy(() => import('./components/WomenScreen').then(m => ({ default: m.WomenScreen })));
+const BooksScreen = lazy(() => import('./components/BooksScreen').then(m => ({ default: m.BooksScreen })));
 
-type Screen = 'home' | 'adhkar' | 'videos' | 'quran' | 'hadith' | 'duas' | 'tasbih' | 'calendar' | 'qibla' | 'settings' | 'garden' | 'deeds' | 'zakat' | 'khatma' | 'lastTen' | 'badges' | 'profile' | 'women';
+type Screen = 'home' | 'adhkar' | 'videos' | 'quran' | 'hadith' | 'duas' | 'tasbih' | 'calendar' | 'qibla' | 'settings' | 'garden' | 'deeds' | 'zakat' | 'khatma' | 'lastTen' | 'badges' | 'profile' | 'women' | 'books';
 
 /* ─── Tab Bar ─── */
 function TabBar({ activeTab, onTabChange }: { activeTab: Screen; onTabChange: (tab: Screen) => void }) {
@@ -67,7 +68,7 @@ function TabBar({ activeTab, onTabChange }: { activeTab: Screen; onTabChange: (t
         { id: 'videos', label: 'الفيديوهات', icon: <PlayIcon className="w-[24px] h-[24px]" /> },
     ];
     const rightTabs: { id: Screen; label: string; icon: React.ReactNode }[] = [
-        { id: 'hadith', label: 'الحديث', icon: <HadithIcon className="w-[24px] h-[24px]" /> },
+        { id: 'books', label: 'المكتبة', icon: <BookIcon className="w-[24px] h-[24px]" /> },
         { id: 'settings', label: 'المزيد', icon: <SettingsIcon className="w-[24px] h-[24px]" /> },
     ];
 
@@ -188,10 +189,11 @@ function AppContent() {
         return () => window.removeEventListener('app:bg-changed', handleBgChange);
     }, []);
 
-    const mainTabs: Screen[] = ['home', 'videos', 'tasbih', 'settings', 'hadith'];
+    const mainTabs: Screen[] = ['home', 'videos', 'tasbih', 'settings', 'books'];
     const [deedsHighlightId, setDeedsHighlightId] = useState<number | undefined>(undefined);
     const [quranAutoOpenSurah, setQuranAutoOpenSurah] = useState<number | null>(null);
     const [quranAutoOpenPage, setQuranAutoOpenPage] = useState<number | null>(null);
+    const [quranAutoOpenVerse, setQuranAutoOpenVerse] = useState<number | null>(null);
     const [videosInCategory, setVideosInCategory] = useState(false);
     const [hadithInDetails, setHadithInDetails] = useState(false);
     const [updateModalOpen, setUpdateModalOpen] = useState(false);
@@ -215,7 +217,7 @@ function AppContent() {
         home: 'الرئيسية',
         adhkar: 'الأذكار',
         videos: 'الفيديوهات',
-        quran: 'القرآن',
+        quran: 'المصحف',
         hadith: 'الحديث',
         duas: 'الأدعية',
         tasbih: 'التسبيح',
@@ -229,18 +231,21 @@ function AppContent() {
         lastTen: 'العشر الأواخر',
         badges: 'الأوسمة',
         profile: 'الملف الشخصي',
+        women: 'ركن المرأة',
+        books: 'المكتبة',
     };
 
     const handleMiniPlayerClick = (surahId: number) => {
         setQuranAutoOpenSurah(surahId);
         setQuranAutoOpenPage(null);
+        setQuranAutoOpenVerse(null);
         if (currentScreen !== 'quran') {
             navigateTo('quran');
         }
     };
 
     const navigateTo = (screen: Screen | string) => {
-        // Handle deeds:id pattern from HomeScreen challenge button
+        // Handle deeds:id pattern
         if (typeof screen === 'string' && screen.startsWith('deeds:')) {
             const id = parseInt(screen.split(':')[1]);
             setDeedsHighlightId(isNaN(id) ? undefined : id);
@@ -256,6 +261,22 @@ function AppContent() {
             setHistory(prev => [...prev, 'deeds']);
             return;
         }
+
+        // Handle quran:surahId:page:verse pattern
+        if (typeof screen === 'string' && screen.startsWith('quran:')) {
+            const parts = screen.split(':');
+            const surahId = parseInt(parts[1]);
+            const page = parseInt(parts[2]);
+            const verse = parts[3] ? parseInt(parts[3]) : null;
+            if (!isNaN(surahId)) setQuranAutoOpenSurah(surahId);
+            if (!isNaN(page)) setQuranAutoOpenPage(page);
+            if (verse !== null && !isNaN(verse)) setQuranAutoOpenVerse(verse);
+            if ('quran' === currentScreen) return;
+            setCurrentScreen('quran');
+            setHistory(prev => [...prev, 'quran']);
+            return;
+        }
+
         const s = screen as Screen;
         if (s === currentScreen) return;
         logInteraction({
@@ -531,19 +552,40 @@ function AppContent() {
                 navigateTo('tasbih');
             } else if (actionId === 'tap') {
                 if (screen) {
+                    if (extra?.surahId) setQuranAutoOpenSurah(extra.surahId);
+                    if (extra?.page) setQuranAutoOpenPage(extra.page);
+                    if (extra?.verseNum) setQuranAutoOpenVerse(extra.verseNum);
                     navigateTo(screen as Screen);
                 } else {
                     navigateTo('home');
                 }
             } else if (screen) {
+                if (extra?.surahId) setQuranAutoOpenSurah(extra.surahId);
+                if (extra?.page) setQuranAutoOpenPage(extra.page);
+                if (extra?.verseNum) setQuranAutoOpenVerse(extra.verseNum);
                 navigateTo(screen as Screen);
             }
         });
 
         const urlListener = CapApp.addListener('appUrlOpen', (data) => {
             if (data.url.includes('me3raj://app/')) {
-                const path = data.url.split('me3raj://app/')[1];
-                if (path && ['home', 'adhkar', 'videos', 'quran', 'hadith', 'duas', 'tasbih', 'calendar', 'qibla', 'settings', 'garden', 'deeds', 'zakat', 'khatma', 'lastTen', 'badges', 'profile', 'women'].includes(path)) {
+                const url = new URL(data.url.replace('me3raj://app/', 'http://localhost/'));
+                const path = url.pathname.slice(1);
+                
+                if (path === 'quran') {
+                    const surah = url.searchParams.get('surah');
+                    const page = url.searchParams.get('page');
+                    const verse = url.searchParams.get('verse');
+                    
+                    if (surah) setQuranAutoOpenSurah(parseInt(surah));
+                    if (page) setQuranAutoOpenPage(parseInt(page));
+                    if (verse) setQuranAutoOpenVerse(parseInt(verse));
+                    
+                    navigateTo('quran');
+                    return;
+                }
+
+                if (path && ['home', 'adhkar', 'videos', 'quran', 'hadith', 'duas', 'tasbih', 'calendar', 'qibla', 'settings', 'garden', 'deeds', 'zakat', 'khatma', 'lastTen', 'badges', 'profile', 'women', 'books'].includes(path)) {
                     navigateTo(path as Screen);
                 }
             }
@@ -577,7 +619,7 @@ function AppContent() {
             case 'home': return <HomeScreen onNavigate={(s) => navigateTo(s as Screen)} />;
             case 'adhkar': return <AdhkarScreen onBack={goBack} />;
             case 'videos': return <VideosScreen onBack={goBack} onCategoryViewChange={setVideosInCategory} onNavigate={(s) => navigateTo(s as Screen)} />;
-            case 'quran': return <QuranScreen onBack={goBack} autoOpenSurahId={quranAutoOpenSurah} autoOpenPage={quranAutoOpenPage} onAutoOpenConsumed={() => { setQuranAutoOpenSurah(null); setQuranAutoOpenPage(null); }} />;
+            case 'quran': return <QuranScreenV2 onBack={goBack} autoOpenSurahId={quranAutoOpenSurah} autoOpenPage={quranAutoOpenPage} autoOpenVerseId={quranAutoOpenVerse} onAutoOpenConsumed={() => { setQuranAutoOpenSurah(null); setQuranAutoOpenPage(null); setQuranAutoOpenVerse(null); }} />;
             case 'duas': return <DuasScreen onBack={goBack} />;
             case 'tasbih': return <TasbihScreen onBack={goBack} />;
             case 'calendar': return <CalendarScreen onBack={goBack} />;
@@ -591,6 +633,8 @@ function AppContent() {
             case 'hadith': return <HadithScreen onBack={goBack} onDetailViewChange={setHadithInDetails} />;
             case 'badges': return <BadgesScreen onBack={goBack} />;
             case 'profile': return <ProfileScreen onBack={goBack} onNavigate={(s) => navigateTo(s as Screen)} />;
+            case 'women': return <WomenScreen onBack={goBack} />;
+            case 'books': return <BooksScreen onBack={goBack} />;
             default: return <HomeScreen onNavigate={(s) => navigateTo(s as Screen)} />;
         }
     };
@@ -624,7 +668,7 @@ function AppContent() {
         }}>
             {showBg && bgUrl && (
                 <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-                    <div 
+                    <div
                         className="absolute inset-[-50px] bg-cover bg-center"
                         style={{
                             backgroundImage: `url('${bgUrl}')`,

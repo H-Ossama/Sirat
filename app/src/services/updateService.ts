@@ -48,7 +48,10 @@ interface GitHubRelease {
 }
 
 function normalizeVersion(value: string): string {
-    return value.trim().replace(/^v/i, '').replace(/\s+/g, '').toLowerCase();
+    let v = value.trim().toLowerCase().replace(/\s+/g, '');
+    // Remove "v" or "sirat-v-" prefixes to get to the version numbers
+    v = v.replace(/^sirat-v-/i, '').replace(/^v/i, '');
+    return v;
 }
 
 function parseVersionParts(value: string): number[] | null {
@@ -176,13 +179,15 @@ export async function getUpdateOverview(): Promise<UpdateOverview | null> {
         }
 
         const apkAsset = pickApkAsset(release.assets ?? []);
+        const latestStr = `${release.tag_name || ''} ${release.name || ''}`;
+        const currentVersion = appInfo?.version || '1.0.0';
 
         return {
-            currentVersion: appInfo?.version || '1.0.0',
+            currentVersion,
             latestVersion: release.tag_name || release.name,
             latestPublishedAt: release.published_at,
             hasApkAsset: !!apkAsset,
-            hasUpdate: !!apkAsset && isReleaseNewer(release.tag_name || release.name, appInfo?.version || '0.0.0'),
+            hasUpdate: !!apkAsset && isReleaseNewer(latestStr, currentVersion),
         };
     } catch (e) {
         console.error('Update overview check failed:', e);
@@ -215,7 +220,8 @@ export async function checkForAppUpdateIfDue(force = false): Promise<AppUpdateRe
         return null;
     }
 
-    const isNewer = isReleaseNewer(release.tag_name || release.name, appInfo.version);
+    const latestStr = `${release.tag_name || ''} ${release.name || ''}`;
+    const isNewer = isReleaseNewer(latestStr, appInfo.version);
     if (!isNewer) {
         return null;
     }

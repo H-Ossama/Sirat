@@ -64,175 +64,274 @@ function addMinutes(date: Date, minutes: number): Date {
 }
 
 export async function scheduleAllNotifications(
-    prayers: PrayerTime[],
+    prayers: PrayerTime[], // Today's prayers (unused now but kept for signature)
     settings: NotificationSettings,
     isRamadan: boolean = false,
-    athanSettings?: any
+    athanSettings?: any,
+    location?: string,
+    methodId?: string,
+    school?: number,
+    offsets?: Record<string, number>
 ): Promise<void> {
     try {
-        // Cancel all existing notifications first
-        await LocalNotifications.cancel({ notifications: Array.from({ length: 50 }, (_, i) => ({ id: i + 1 })) });
+        const now = new Date();
+        const nowTime = now.getTime() + 15000; // 15-second grace buffer to avoid "immediate" fires on missed seconds
+
+        // 1. CLEANUP: Clear everything to prevent 'old' or duplicate notifications
+        try {
+            const pending = await LocalNotifications.getPending();
+            if (pending.notifications.length > 0) {
+                await LocalNotifications.cancel({ notifications: pending.notifications.map(n => ({ id: n.id })) });
+            }
+            await LocalNotifications.removeAllDeliveredNotifications();
+        } catch (e) {
+            console.warn('Notification cleanup failed:', e);
+        }
+
+        // Return early if no notifications are enabled
+        const anyPrayerEnabled = Object.values(athanSettings?.prayerConfigs || {}).some((c: any) => c.enabled);
+        if (!settings.prayerAlerts && !settings.suhoorReminder && !settings.iftarReminder && 
+            !settings.morningAdhkar && !settings.eveningAdhkar && !settings.dailyVerse && !settings.tasbihReminder && !anyPrayerEnabled) {
+            return;
+        }
+
+        // 2. FETCH DATA: Get consistent calendar for next 7 days
+        const { fetchCalendar } = await import('./prayerService');
+        const query = location || localStorage.getItem('user_city') || 'mecca';
+        const mid = methodId || localStorage.getItem('prayer_method') || '3';
+        const sch = school ?? parseInt(localStorage.getItem('prayer_school') || '0');
+        const off = offsets || JSON.parse(localStorage.getItem('prayer_offsets') || '{}');
+
+        const year = now.getFullYear();
+        const month = now.getMonth() + 1;
+        let days = await fetchCalendar(query, year, month, mid, sch, off);
+
+        if (now.getDate() > 24) {
+            const nextMonth = month === 12 ? 1 : month + 1;
+            const nextYear = month === 12 ? year + 1 : year;
+            const nextDays = await fetchCalendar(query, nextYear, nextMonth, mid, sch, off);
+            days = [...days, ...nextDays];
+        }
+
+        const todayDateStr = `${year}-${String(month).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const futureDays = days.filter(d => {
+            const [dd, mm, yyyy] = d.gregorian.date.split('-');
+            const dStr = `${yyyy}-${mm}-${dd}`;
+            return dStr >= todayDateStr;
+        }).slice(0, 7);
 
         const notifications: ScheduleOptions['notifications'] = [];
-        let id = 1;
-
         const prayerOrder = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
 
-        for (const prayer of prayers) {
-            if (!prayerOrder.includes(prayer.name)) continue;
-            const prayerDate = prayerTimeToDate(prayer.time);
+        // 3. GENERATE NOTIFICATIONS
+        futureDays.forEach((day, dayIdx) => {
+            const [dd, mm, yyyy] = day.gregorian.date.split('-');
+            const dYear = parseInt(yyyy);
+            const dMonth = parseInt(mm) - 1;
+            const dDay = parseInt(dd);
 
-            // Prayer alert - Skip if handled by Athan notifications
-            const isAthanEnabled = athanSettings?.prayerConfigs?.[prayer.name]?.enabled && !athanSettings?.globalMuted;
+            prayerOrder.forEach((pName, pIdx) => {
+                let timeStr = day.timings[pName];
+                if (!timeStr) return;
 
-            if (settings.prayerAlerts && !isAthanEnabled) {
-                notifications.push({
-                    id: id++,
-                    title: `🕌 حان وقت ${prayer.nameAr}`,
-                    body: `حان الآن وقت صلاة ${prayer.nameAr} — ${prayer.time}`,
-                    schedule: {
-                        at: prayerDate,
-                        repeats: true,
-                        every: 'day',
-                    },
-                    sound: 'adhan.wav',
-                    channelId: 'prayer',
-                    actionTypeId: 'PRAYER_ACTION',
-                    smallIcon: 'ic_stat_icon',
-                    iconColor: '#d4a520',
-                    extra: { screen: 'home', prayer: prayer.name },
-                });
-            }
+                // Remove timezone suffix if present (e.g., "05:00 (AST)")
+                timeStr = timeStr.split(' ')[0];
 
-            // Suhoor reminder (30 min before Fajr)
-            if (isRamadan && settings.suhoorReminder && prayer.name === 'Fajr') {
-                const suhoorTime = addMinutes(prayerDate, -30);
-                notifications.push({
-                    id: id++,
-                    title: '🌙 تذكير السحور',
-                    body: 'تبقى 30 دقيقة على الفجر — لا تنس سحورك',
-                    schedule: {
-                        at: suhoorTime,
-                        repeats: true,
-                        every: 'day',
-                    },
-                    channelId: 'reminders',
-                    smallIcon: 'ic_stat_icon',
-                    iconColor: '#d4a520',
-                    extra: { screen: 'home' },
-                });
-            }
+                const [h, m] = timeStr.split(':').map(Number);
+                if (isNaN(h) || isNaN(m)) return;
 
-            // Iftar reminder (at Maghrib)
-            if (isRamadan && settings.iftarReminder && prayer.name === 'Maghrib') {
-                notifications.push({
-                    id: id++,
-                    title: '🌅 حان وقت الإفطار!',
-                    body: `اللهم لك صمت وعلى رزقك أفطرت — ${prayer.time}`,
-                    schedule: {
-                        at: prayerDate,
-                        repeats: true,
-                        every: 'day',
-                    },
-                    channelId: 'prayer',
-                    actionTypeId: 'IFTAR_ACTION',
-                    smallIcon: 'ic_stat_icon',
-                    iconColor: '#d4a520',
-                    extra: { screen: 'home' },
-                });
-            }
+                const prayerDate = new Date(dYear, dMonth, dDay, h, m, 0, 0);
+                const pTime = prayerDate.getTime();
 
-            // Morning Adhkar (15 min after Fajr)
-            if (settings.morningAdhkar && prayer.name === 'Fajr') {
-                const adhkarTime = addMinutes(prayerDate, 15);
-                notifications.push({
-                    id: id++,
-                    title: '📿 أذكار الصباح',
-                    body: 'ابدأ يومك بذكر الله — أذكار الصباح',
-                    schedule: {
-                        at: adhkarTime,
-                        repeats: true,
-                        every: 'day',
-                    },
-                    channelId: 'reminders',
-                    smallIcon: 'ic_stat_icon',
-                    iconColor: '#d4a520',
-                    actionTypeId: 'ADHKAR_ACTION',
-                    extra: { screen: 'adhkar', category: 'morning' },
-                });
-            }
+                // Skip if Invalid Date or if this prayer time is already in the past
+                if (isNaN(pTime) || pTime <= nowTime) return;
 
-            // Evening Adhkar (15 min after Asr)
-            if (settings.eveningAdhkar && prayer.name === 'Asr') {
-                const adhkarTime = addMinutes(prayerDate, 15);
-                notifications.push({
-                    id: id++,
-                    title: '📿 أذكار المساء',
-                    body: 'اختم نهارك بذكر الله — أذكار المساء',
-                    schedule: {
-                        at: adhkarTime,
-                        repeats: true,
-                        every: 'day',
-                    },
-                    channelId: 'reminders',
-                    smallIcon: 'ic_stat_icon',
-                    iconColor: '#d4a520',
-                    actionTypeId: 'ADHKAR_ACTION',
-                    extra: { screen: 'adhkar', category: 'evening' },
-                });
-            }
-        }
+                // Unique ID Deterministic logic: (dayIdx * 100) + (pIdx * 10) + type(1-9)
+                const baseId = (dayIdx * 100) + (pIdx * 10);
 
-        // Daily Verse — 8:00 AM
-        if (settings.dailyVerse) {
-            const verseTime = new Date();
-            verseTime.setHours(8, 0, 0, 0);
-            notifications.push({
-                id: id++,
-                title: '📖 آية اليوم',
-                body: 'شَهْرُ رَمَضَانَ الَّذِي أُنزِلَ فِيهِ الْقُرْآنُ هُدًى لِّلنَّاسِ',
-                schedule: {
-                    at: verseTime,
-                    repeats: true,
-                    every: 'day',
-                },
-                channelId: 'daily',
-                smallIcon: 'ic_stat_icon',
-                iconColor: '#d4a520',
-                actionTypeId: 'QURAN_ACTION',
-                extra: { screen: 'quran' },
+                const prayerNameAr = pName === 'Fajr' ? 'الفجر' : 
+                                   pName === 'Dhuhr' ? 'الظهر' : 
+                                   pName === 'Asr' ? 'العصر' : 
+                                   pName === 'Maghrib' ? 'المغرب' : 'العشاء';
+
+                const aConfig = athanSettings?.prayerConfigs?.[pName];
+                const isAthanEnabled = aConfig?.enabled && !athanSettings?.globalMuted;
+
+                // --- Athan OR Prayer Alert ---
+                if (isAthanEnabled) {
+                    // Muezzin sound name (without extension)
+                    const muezzinId = aConfig.muezzinId || 'makkah_classic';
+                    const soundFile = muezzinId === 'beep' ? 'athan_beep' : `athan_${muezzinId.replace('muezzin_', '')}`;
+                    
+                    notifications.push({
+                        id: baseId + 1,
+                        title: `🕌 أذان ${prayerNameAr}`,
+                        body: `حان وقت صلاة ${prayerNameAr} — ${timeStr}`,
+                        schedule: { at: prayerDate },
+                        sound: soundFile,
+                        channelId: 'athan',
+                        actionTypeId: 'ATHAN_ACTION',
+                        smallIcon: 'ic_stat_icon',
+                        iconColor: '#d4a520',
+                        extra: { 
+                            screen: 'home', 
+                            prayer: pName, 
+                            prayerAr: prayerNameAr, 
+                            type: 'athan', 
+                            muezzinId: aConfig.muezzinId 
+                        },
+                    });
+
+                    // Pre-Athan Reminder
+                    if (aConfig.reminderMinutes > 0) {
+                        const rTime = pTime - (aConfig.reminderMinutes * 60 * 1000);
+                        if (rTime > nowTime) {
+                            notifications.push({
+                                id: baseId + 2,
+                                title: `⏰ ${aConfig.reminderMinutes} دقائق على أذان ${prayerNameAr}`,
+                                body: `استعد لصلاة ${prayerNameAr} — سيحين الأذان قريباً`,
+                                schedule: { at: new Date(rTime) },
+                                sound: aConfig.reminderSound === 'default' ? 'notification_reminder' : aConfig.reminderSound,
+                                channelId: 'athan_reminder',
+                                smallIcon: 'ic_stat_icon',
+                                iconColor: '#c49a16',
+                                extra: { screen: 'home', prayer: pName, type: 'athan_reminder' },
+                            });
+                        }
+                    }
+                } else if (settings.prayerAlerts) {
+                    notifications.push({
+                        id: baseId + 3,
+                        title: `🕌 حان وقت ${prayerNameAr}`,
+                        body: `حان الآن وقت صلاة ${prayerNameAr} — ${timeStr}`,
+                        schedule: { at: prayerDate },
+                        sound: 'adhan.wav',
+                        channelId: 'prayer',
+                        actionTypeId: 'PRAYER_ACTION',
+                        smallIcon: 'ic_stat_icon',
+                        iconColor: '#d4a520',
+                        extra: { screen: 'home', prayer: pName },
+                    });
+                }
+
+                // --- Ramadan Reminders ---
+                if (isRamadan) {
+                    if (settings.suhoorReminder && pName === 'Fajr') {
+                        const sTime = pTime - (30 * 60 * 1000);
+                        if (sTime > nowTime) {
+                            notifications.push({
+                                id: baseId + 4,
+                                title: '🌙 تذكير السحور',
+                                body: 'تبقى 30 دقيقة على الفجر — لا تنس سحورك',
+                                schedule: { at: new Date(sTime) },
+                                channelId: 'reminders',
+                                smallIcon: 'ic_stat_icon',
+                                iconColor: '#d4a520',
+                                extra: { screen: 'home' },
+                            });
+                        }
+                    }
+                    if (settings.iftarReminder && pName === 'Maghrib') {
+                        notifications.push({
+                            id: baseId + 5,
+                            title: '🌅 حان وقت الإفطار!',
+                            body: `اللهم لك صمت وعلى رزقك أفطرت — ${timeStr}`,
+                            schedule: { at: prayerDate },
+                            channelId: 'prayer',
+                            actionTypeId: 'IFTAR_ACTION',
+                            smallIcon: 'ic_stat_icon',
+                            iconColor: '#d4a520',
+                            extra: { screen: 'home' },
+                        });
+                    }
+                }
+
+                // --- Adhkar Reminders ---
+                if (settings.morningAdhkar && pName === 'Fajr') {
+                    const adTime = pTime + (15 * 60 * 1000);
+                    if (adTime > nowTime) {
+                        notifications.push({
+                            id: baseId + 6,
+                            title: '📿 أذكار الصباح',
+                            body: 'ابدأ يومك بذكر الله — أذكار الصباح',
+                            schedule: { at: new Date(adTime) },
+                            channelId: 'reminders',
+                            smallIcon: 'ic_stat_icon',
+                            iconColor: '#d4a520',
+                            actionTypeId: 'ADHKAR_ACTION',
+                            extra: { screen: 'adhkar', category: 'morning' },
+                        });
+                    }
+                }
+                if (settings.eveningAdhkar && pName === 'Asr') {
+                    const adTime = pTime + (15 * 60 * 1000);
+                    if (adTime > nowTime) {
+                        notifications.push({
+                            id: baseId + 7,
+                            title: '📿 أذكار المساء',
+                            body: 'اختم نهارك بذكر الله — أذكار المساء',
+                            schedule: { at: new Date(adTime) },
+                            channelId: 'reminders',
+                            smallIcon: 'ic_stat_icon',
+                            iconColor: '#d4a520',
+                            actionTypeId: 'ADHKAR_ACTION',
+                            extra: { screen: 'adhkar', category: 'evening' },
+                        });
+                    }
+                }
             });
-        }
 
-        // Tasbih reminder
-        if (settings.tasbihReminder && settings.tasbihTime) {
-            const [th, tm] = settings.tasbihTime.split(':').map(Number);
-            const tasbihDate = new Date();
-            tasbihDate.setHours(th, tm, 0, 0);
-            notifications.push({
-                id: id++,
-                title: '🔢 تذكير التسبيح',
-                body: 'سبحان الله وبحمده — افتح التسبيح',
-                schedule: {
-                    at: tasbihDate,
-                    repeats: true,
-                    every: 'day',
-                },
-                channelId: 'reminders',
-                smallIcon: 'ic_stat_icon',
-                iconColor: '#d4a520',
-                actionTypeId: 'TASBIH_ACTION',
-                extra: { screen: 'tasbih' },
-            });
-        }
+            // --- Daily Miscellaneous (at specific hour on each day) ---
+            if (settings.dailyVerse) {
+                const vDate = new Date(dYear, dMonth, dDay, 8, 0, 0);
+                if (vDate.getTime() > nowTime) {
+                    notifications.push({
+                        id: (dayIdx * 100) + 90,
+                        title: '📖 آية اليوم',
+                        body: 'شَهْرُ رَمَضَانَ الَّذِي أُنزِلَ فِيهِ الْقُرْآنُ هُدًى لِّلنَّاسِ',
+                        schedule: { at: vDate },
+                        channelId: 'daily',
+                        smallIcon: 'ic_stat_icon',
+                        iconColor: '#d4a520',
+                        actionTypeId: 'QURAN_ACTION',
+                        extra: { screen: 'quran' },
+                    });
+                }
+            }
+            if (settings.tasbihReminder && settings.tasbihTime) {
+                const [th, tm] = settings.tasbihTime.split(':').map(Number);
+                const tDate = new Date(dYear, dMonth, dDay, th, tm, 0);
+                if (tDate.getTime() > nowTime) {
+                    notifications.push({
+                        id: (dayIdx * 100) + 91,
+                        title: '🔢 تذكير التسبيح',
+                        body: 'سبحان الله وبحمده — افتح التسبيح',
+                        schedule: { at: tDate },
+                        channelId: 'reminders',
+                        smallIcon: 'ic_stat_icon',
+                        iconColor: '#d4a520',
+                        actionTypeId: 'TASBIH_ACTION',
+                        extra: { screen: 'tasbih' },
+                    });
+                }
+            }
+        });
 
+        // 4. SCHEDULE: Split into chunks to avoid OS limitations
         if (notifications.length > 0) {
-            await LocalNotifications.schedule({ notifications });
+            const chunkSize = 40;
+            for (let i = 0; i < notifications.length; i += chunkSize) {
+                await LocalNotifications.schedule({ 
+                    notifications: notifications.slice(i, i + chunkSize) 
+                });
+            }
         }
     } catch (err) {
-        console.warn('Notifications not available (browser mode):', err);
+        console.warn('Major error in master scheduler:', err);
     }
 }
+
+
 
 export async function setupNotificationChannels(): Promise<void> {
     try {

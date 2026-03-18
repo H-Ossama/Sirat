@@ -260,14 +260,21 @@ body {
 .animate-fade-in {
   animation: fadeIn 0.4s ease-out forwards;
 }
+
 @keyframes ios-spinner {
-  0% { opacity: 1; }
-  100% { opacity: 0.1; }
+  0% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.1;
+  }
 }
 
 .animate-ios-spinner {
   animation: ios-spinner 1s linear infinite;
 }
+
 .animate-fade-in-scale {
   animation: fadeInScale 0.3s ease-out forwards;
 }
@@ -450,13 +457,25 @@ body {
 
 /* UI Animations */
 @keyframes slideIn {
-  from { opacity: 0; transform: translateX(10px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .animation-slide-in {
@@ -465,4 +484,478 @@ body {
 
 .animation-fade-in {
   animation: fadeIn 0.4s ease-out forwards;
+}
+
+/* PDF Viewer Full Screen Fit */
+.pdf-page-fit {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.pdf-page-fit canvas {
+  max-width: 100% !important;
+  max-height: 100% !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain;
+}
+
+/* ─── Mushaf V2 Styles ─── */
+
+:root {
+  --mushaf-font-scale: 1;
+}
+
+/* Themes */
+.mushaf-v2-theme-cream {
+  --mushaf-bg: #FFF8E7;
+  --mushaf-text: #2A1F08;
+  --mushaf-frame: #1A7D5A;
+  --mushaf-highlight: rgba(212, 165, 40, 0.3);
+  --mushaf-accent: #B8891A;
+  background-color: var(--mushaf-bg);
+  color: var(--mushaf-text);
+}
+
+.mushaf-v2-theme-sepia {
+  --mushaf-bg: #F5E6C8;
+  --mushaf-text: #3D2B1F;
+  --mushaf-frame: #8B5A2B;
+  --mushaf-highlight: rgba(139, 90, 43, 0.2);
+  --mushaf-accent: #D2691E;
+  background-color: var(--mushaf-bg);
+  color: var(--mushaf-text);
+}
+
+.mushaf-v2-theme-cream {
+  --mushaf-bg: #FFF8E7;
+  --mushaf-text: #2D2316;
+  --mushaf-frame: #B8891A;
+  --mushaf-highlight: rgba(184, 137, 26, 0.2);
+  --mushaf-accent: #B8891A;
+  --mushaf-frame-rgb: 184, 137, 26;
+  background-color: var(--mushaf-bg);
+  color: var(--mushaf-text);
+}
+
+.mushaf-v2-theme-black {
+  --mushaf-bg: #050505;
+  --mushaf-text: #F0F0F0;
+  --mushaf-frame: #DAA520;
+  --mushaf-highlight: rgba(218, 165, 32, 0.2);
+  --mushaf-accent: #DAA520;
+  --mushaf-frame-rgb: 218, 165, 32;
+  background-color: var(--mushaf-bg);
+  color: var(--mushaf-text);
+}
+
+.mushaf-v2-theme-green {
+  --mushaf-bg: #F0F7ED;
+  --mushaf-text: #1B2D1B;
+  --mushaf-frame: #3D6B3D;
+  --mushaf-highlight: rgba(61, 107, 61, 0.15);
+  --mushaf-accent: #1B4D1B;
+  --mushaf-frame-rgb: 61, 107, 61;
+  background-color: var(--mushaf-bg);
+  color: var(--mushaf-text);
+}
+
+.mushaf-v2-night {
+  --mushaf-bg: #0B111A;
+  --mushaf-text: #E2E8F0;
+  --mushaf-frame: #3D9B78;
+  --mushaf-highlight: rgba(61, 155, 120, 0.3);
+  --mushaf-accent: #B8891A;
+  --mushaf-frame-rgb: 61, 155, 120;
+  background-color: var(--mushaf-bg);
+  color: var(--mushaf-text);
+}
+
+/* Page Layout */
+.mushaf-v2-page {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  box-sizing: border-box;
+  overflow: hidden;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* Word Level (Transparent overlays for touch targets) */
+.mushaf-v2-word {
+  -webkit-tap-highlight-color: transparent;
+  font-size: 1.1rem;
+  /* Base size for invisible text bounds */
+}
+
+/* Ornamental Frame for Text Mode */
+.mushaf-v2-frame {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  right: 15px;
+  bottom: 15px;
+  border: 1px solid var(--mushaf-frame);
+  box-shadow:
+    0 0 0 4px var(--mushaf-bg),
+    0 0 0 5px var(--mushaf-frame),
+    0 0 0 10px var(--mushaf-bg),
+    0 0 0 12px var(--mushaf-frame);
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0.9;
+}
+
+/* 8-Pointed Star (Rub el Hizb) Ornaments at Corners */
+.mushaf-v2-page::before,
+.mushaf-v2-page::after,
+.mushaf-v2-frame::before,
+.mushaf-v2-frame::after {
+  content: '';
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  background: var(--mushaf-frame);
+  z-index: 20;
+  pointer-events: none;
+  clip-path: polygon(50% 0%, 65% 15%, 85% 15%, 85% 35%, 100% 50%, 85% 65%, 85% 85%, 65% 85%, 50% 100%, 35% 85%, 15% 85%, 15% 65%, 0% 50%, 15% 35%, 15% 15%, 35% 15%);
+}
+
+/* 4 Corners positioning */
+.mushaf-v2-page::before {
+  top: 7px;
+  right: 7px;
+}
+
+.mushaf-v2-page::after {
+  top: 7px;
+  left: 7px;
+}
+
+.mushaf-v2-frame::before {
+  bottom: 7px;
+  right: 7px;
+}
+
+.mushaf-v2-frame::after {
+  bottom: 7px;
+  left: 7px;
+}
+
+.mushaf-v2-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-image: radial-gradient(circle at center, transparent 0%, rgba(var(--mushaf-frame-rgb), 0.04) 100%);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Text-Based Page Layout */
+.mushaf-v2-text-container {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 65px 85px 110px 85px;
+  /* Balanced safe zone */
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+  text-rendering: optimizeSpeed;
+  -webkit-font-smoothing: antialiased;
+  touch-action: pan-y;
+}
+
+@media (max-width: 640px) {
+  .mushaf-v2-text-container {
+    padding: 55px 55px 85px 55px;
+    /* Tighter mobile safe zone */
+  }
+}
+
+/* Vertical spine shadow for book look */
+.mushaf-v2-text-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 30px;
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.05), transparent);
+  pointer-events: none;
+  z-index: 20;
+}
+
+.mushaf-v2-text-line {
+  display: flex;
+  justify-content: center;
+  /* Default to center for all fonts to prevent overflow */
+  align-items: center;
+  width: 100%;
+  max-width: 100%;
+  direction: rtl;
+  min-height: calc(2.8rem * var(--mushaf-font-scale));
+  line-height: calc(2.8rem * var(--mushaf-font-scale));
+  margin-bottom: 5px;
+  flex-wrap: wrap;
+  /* Always allow wrap to prevent clipping */
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  gap: 4px 10px;
+}
+
+/* Font specific adjustments */
+.mushaf-v2-font-naskh .mushaf-v2-text-line,
+.mushaf-v2-font-amiri .mushaf-v2-text-line {
+  /* These now inherit the wrap/center behavior */
+  gap: 8px 12px;
+}
+
+@media (max-width: 640px) {
+  .mushaf-v2-text-line {
+    justify-content: center;
+    /* Center lines on mobile to avoid 'unorganized' gaps at ends */
+    gap: 8px;
+    margin-bottom: 2px;
+  }
+}
+
+.mushaf-v2-text-line.center {
+  justify-content: center;
+  gap: 12px;
+}
+
+.mushaf-v2-text-word {
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+  padding: 4px 6px;
+  border-radius: 6px;
+  font-size: calc(1.8rem * var(--mushaf-font-scale));
+  color: var(--mushaf-text);
+  white-space: normal;
+  /* Allow wrapping for giant zoomed words */
+  overflow-wrap: break-word;
+  line-height: 1.4;
+  word-break: keep-all;
+  /* Try to keep words whole unless they MUST break */
+}
+
+@media (max-width: 640px) {
+  .mushaf-v2-text-word {
+    font-size: calc(1.4rem * var(--mushaf-font-scale));
+    /* Slightly smaller base font on mobile */
+    padding: 2px 4px;
+  }
+}
+
+/* Specific settings for QCF (Uthmani) to prevent browser shaping which breaks its non-standard glyph mapping */
+[style*="QCF2"] .mushaf-v2-text-word {
+  font-feature-settings: "kern" 0, "calt" 0, "liga" 0, "clig" 0, "dlig" 0, "hlig" 0;
+  line-height: 1.1;
+}
+
+.mushaf-v2-text-word:active,
+.mushaf-v2-text-word.selected {
+  background-color: var(--mushaf-highlight);
+}
+
+.mushaf-v2-text-word.playing {
+  background-color: var(--mushaf-highlight);
+  font-weight: bold;
+}
+
+.mushaf-v2-text-word.flagged-highlight {
+  text-decoration: underline wavy var(--mushaf-accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+/* Ayah end marker with border for non-uthmani fonts */
+.mushaf-v2-ayah-end {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(2.2rem * var(--mushaf-font-scale));
+  height: calc(2.2rem * var(--mushaf-font-scale));
+  border: 1.5px solid var(--mushaf-accent);
+  border-radius: 50%;
+  font-family: 'Amiri', serif;
+  font-size: calc(0.9rem * var(--mushaf-font-scale));
+  font-weight: bold;
+  color: var(--mushaf-accent);
+  margin: 0 4px;
+  vertical-align: middle;
+  background: rgba(var(--mushaf-frame-rgb), 0.05);
+  position: relative;
+}
+
+/* Optional: Add a second border or decorative dots */
+.mushaf-v2-ayah-end::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  opacity: 0.3;
+}
+
+/* Floating Rounded Footer */
+.mushaf-v2-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 20px;
+  margin: 0 25px 25px 25px;
+  background: var(--mushaf-bg);
+  border: 1px solid var(--mushaf-frame);
+  border-radius: 20px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  position: relative;
+  z-index: 20;
+}
+
+.mushaf-v2-footer-page-num {
+  font-family: 'Amiri', serif;
+  font-size: 0.9rem;
+  font-weight: bold;
+  opacity: 0.8;
+  color: var(--mushaf-text);
+}
+
+.mushaf-v2-text-surah-header {
+  width: 100%;
+  text-align: center;
+  padding: 14px 0;
+  margin: 5px 0 15px 0;
+  /* Reduced top margin to pull header up */
+  background: linear-gradient(to right, transparent, rgba(var(--mushaf-frame-rgb), 0.15), transparent);
+  border-top: 2px double var(--mushaf-frame);
+  border-bottom: 2px double var(--mushaf-frame);
+  font-family: 'Amiri', serif;
+  font-weight: bold;
+  font-size: 1.8rem;
+  color: var(--mushaf-accent);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 30px rgba(var(--mushaf-frame-rgb), 0.05);
+  z-index: 10;
+}
+
+.mushaf-v2-text-bismillah {
+  width: 100%;
+  text-align: center;
+  font-family: 'Amiri', serif;
+  font-size: 1.6rem;
+  margin-top: 5px;
+  margin-bottom: 15px;
+  color: var(--mushaf-text);
+  opacity: 0.95;
+}
+
+.mushaf-v2-text-surah-header::before,
+.mushaf-v2-text-surah-header::after {
+  content: '۞';
+  font-size: 1.4rem;
+  margin: 0 20px;
+  opacity: 0.8;
+  color: var(--mushaf-accent);
+}
+
+.mushaf-v2-text-bismillah {
+  width: 100%;
+  text-align: center;
+  font-family: 'Amiri', serif;
+  font-size: 1.8rem;
+  margin: 10px 0 20px 0;
+  color: var(--mushaf-text);
+  opacity: 0.9;
+}
+
+
+.mushaf-v2-font-naskh .mushaf-v2-word {
+  font-family: 'Noto Naskh Arabic', serif;
+  font-size: calc(1.1rem * var(--mushaf-font-scale));
+  line-height: calc(2.4rem * var(--mushaf-font-scale));
+}
+
+.mushaf-v2-font-amiri .mushaf-v2-word {
+  font-family: 'Amiri', serif;
+  font-size: calc(1.2rem * var(--mushaf-font-scale));
+  line-height: calc(2.4rem * var(--mushaf-font-scale));
+}
+
+/* Floating Action Menu Overlay */
+.verse-action-menu-overlay {
+  position: absolute;
+  background: var(--mushaf-bg);
+  border: 1px solid var(--mushaf-frame);
+  border-radius: 12px;
+  padding: 8px;
+  display: flex;
+  gap: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 50;
+  transform: translateY(-50%);
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+.text-gold-500 {
+  color: #d4af37;
+}
+
+.text-gold-600 {
+  color: #b8860b;
+}
+
+@media (max-width: 640px) {
+  .mushaf-v2-frame {
+    top: 8px;
+    bottom: 8px;
+    left: 8px;
+    right: 8px;
+  }
 }

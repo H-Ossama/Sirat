@@ -72,6 +72,17 @@
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/inspiration_widget_info" />
         </receiver>
 
+        <receiver android:name=".CalendarWidget" android:label="التقويم الهجري" android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.me3raj.app.CALENDAR_PREV_MONTH" />
+                <action android:name="com.me3raj.app.CALENDAR_NEXT_MONTH" />
+                <action android:name="com.me3raj.app.CALENDAR_GO_TODAY" />
+                <action android:name="com.me3raj.app.CALENDAR_TOGGLE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/calendar_widget_info" />
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

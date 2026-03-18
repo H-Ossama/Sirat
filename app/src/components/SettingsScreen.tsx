@@ -45,7 +45,7 @@ function ToggleSwitch({ on, onToggle }: { on: boolean; onToggle: () => void }) {
 export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
     const { theme, toggleTheme } = useTheme();
     const isDark = theme !== 'light';
-    const { city, changeCity, methodId, changeMethod, school, changeSchool, prayerData, locationName, refreshLocation, locationLoading, prayerOffsets, updatePrayerOffset, updateAdjustment } = usePrayerTimes();
+    const { city, changeCity, methodId, changeMethod, school, changeSchool, prayerData, locationName, refreshLocation, locationLoading, prayerOffsets, updatePrayerOffset, updateAdjustment, coords } = usePrayerTimes();
     const [settings, setSettings] = useState<NotificationSettings>(getNotificationSettings);
     const [athanSettings, setAthanSettings] = useState<AthanSettings>(getAthanSettings);
     const [prayerPickingMuezzin, setPrayerPickingMuezzin] = useState<PrayerWithAthan | null>(null);
@@ -134,7 +134,18 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
         const newSettings = { ...settings, [key]: !settings[key] };
         setSettings(newSettings);
         saveNotificationSettings(newSettings);
-        if (prayerData) scheduleAllNotifications(prayerData.prayers, newSettings);
+        if (prayerData) {
+            scheduleAllNotifications(
+                prayerData.prayers, 
+                newSettings, 
+                prayerData.hijriMonthEn === 'Ramadan',
+                athanSettings,
+                city || (coords ? `${coords.lat},${coords.lon}` : undefined),
+                methodId,
+                school,
+                prayerOffsets
+            );
+        }
         logInteraction({
             type: 'settings_toggle_notification',
             category: 'settings',
@@ -149,7 +160,16 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
             const next = updater(prev);
             saveAthanSettings(next);
             if (prayerData) {
-                scheduleAthanNotifications({ prayers: prayerData.prayers, settings: next });
+                scheduleAllNotifications(
+                    prayerData.prayers,
+                    settings,
+                    localStorage.getItem('hijri_month_en') === 'Ramadan',
+                    next,
+                    city || (coords ? `${coords.lat},${coords.lon}` : undefined),
+                    methodId,
+                    school,
+                    prayerOffsets
+                );
             }
             return next;
         });
@@ -406,37 +426,6 @@ export function SettingsScreen({ onBack, onNavigate }: SettingsScreenProps) {
                                         <ZapIcon className={`w-4 h-4 ${locationLoading ? 'animate-spin' : ''}`} />
                                         {locationLoading ? 'جاري تحديد الموقع...' : 'استخدام الموقع الحالي (GPS)'}
                                     </button>
-                                </div>
-                            </div>
-                        </section>
-
-                        {/* User Gender */}
-                        <section>
-                            <SectionHead
-                                icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>}
-                                title="ملفي الشخصي"
-                                subtitle="تخصيص التجربة حسب الجنس"
-                            />
-                            <div className={card}>
-                                <div className={`flex items-center justify-between px-4 py-3.5`} dir="rtl">
-                                    <div>
-                                        <p className={lbl}>الجنس</p>
-                                        <p className={sub}>يتم تخصيص المحتوى بناءً عليه</p>
-                                    </div>
-                                    <div className={`flex items-center gap-1 p-1 rounded-xl border ${D ? 'bg-white/5 border-white/5' : 'bg-slate-100 border-slate-200'}`}>
-                                        <button 
-                                            onClick={() => handleGenderChange('male')}
-                                            className={`px-4 py-1.5 rounded-lg text-[13px] font-bold transition-all ${gender === 'male' ? (D ? 'bg-white text-slate-900 shadow-sm' : 'bg-white text-slate-800 shadow-sm') : (D ? 'text-white/40 hover:text-white/60' : 'text-slate-400 hover:text-slate-600')}`}
-                                        >
-                                            ذكر
-                                        </button>
-                                        <button 
-                                            onClick={() => handleGenderChange('female')}
-                                            className={`px-4 py-1.5 rounded-lg text-[13px] font-bold transition-all ${gender === 'female' ? (D ? 'bg-white text-slate-900 shadow-sm' : 'bg-white text-slate-800 shadow-sm') : (D ? 'text-white/40 hover:text-white/60' : 'text-slate-400 hover:text-slate-600')}`}
-                                        >
-                                            أنثى
-                                        </button>
-                                    </div>
                                 </div>
                             </div>
                         </section>

@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { ChevronLeftIcon, FlameIcon, ZapIcon, AwardIcon, SettingsIcon, SparkleIcon } from './Icons';
+import { useState, useMemo, useEffect } from 'react';
+import { ChevronLeftIcon, FlameIcon, ZapIcon, AwardIcon, SettingsIcon, SparkleIcon, UserIcon } from './Icons';
 import { useTheme } from './ThemeContext';
 import { getRewardsState, getAllBadges, saveUserName } from '../services/rewardsStore';
 import { getSavedVideos, getLikedVideos, type VideoMeta } from '../services/videoInteractionsStore';
@@ -43,6 +43,13 @@ export function ProfileScreen({ onBack, onNavigate }: ProfileScreenProps) {
 
     const [editingName, setEditingName] = useState(false);
     const [nameInput, setNameInput] = useState(state.userName);
+    const [gender, setGender] = useState<'male' | 'female'>(() => (localStorage.getItem('user_gender') as 'male' | 'female') || 'male');
+
+    const handleGenderChange = (g: 'male' | 'female') => {
+        setGender(g);
+        localStorage.setItem('user_gender', g);
+        window.dispatchEvent(new CustomEvent('user:gender-changed'));
+    };
 
     const saveName = () => {
         const trimmed = nameInput.trim() || 'أخي المسلم';
@@ -157,6 +164,28 @@ export function ProfileScreen({ onBack, onNavigate }: ProfileScreenProps) {
 
                         {/* XP Progress */}
                         <div className="w-full mt-6 pt-6 border-t border-dashed border-slate-200 dark:border-white/10">
+                            {/* Gender Selection */}
+                            <div className="flex items-center justify-between mb-4 bg-slate-50 dark:bg-white/5 rounded-2xl p-1.5 border border-slate-100 dark:border-white/10" dir="ltr">
+                                <button 
+                                    onClick={() => handleGenderChange('male')}
+                                    className={`flex-1 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 ${gender === 'male' 
+                                        ? (isDark ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30' : 'bg-indigo-500 text-white shadow-md shadow-indigo-500/20') 
+                                        : (isDark ? 'text-white/40 hover:bg-white/5' : 'text-slate-400 hover:bg-slate-100')}`}
+                                >
+                                    <UserIcon className="w-4 h-4" />
+                                    <span>ذكر</span>
+                                </button>
+                                <button 
+                                    onClick={() => handleGenderChange('female')}
+                                    className={`flex-1 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 ${gender === 'female' 
+                                        ? (isDark ? 'bg-pink-500 text-white shadow-lg shadow-pink-500/30' : 'bg-pink-500 text-white shadow-md shadow-pink-500/20') 
+                                        : (isDark ? 'text-white/40 hover:bg-white/5' : 'text-slate-400 hover:bg-slate-100')}`}
+                                >
+                                    <UserIcon className="w-4 h-4" />
+                                    <span>أنثى</span>
+                                </button>
+                            </div>
+
                             <div className="flex items-center justify-between mb-3">
                                 <span className={`text-xs font-bold ${isDark ? 'text-white/40' : 'text-slate-500'}`}>
                                     المستوى {level}

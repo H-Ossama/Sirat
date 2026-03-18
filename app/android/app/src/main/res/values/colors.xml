@@ -10,15 +10,24 @@
     <color name="text_muted">#A0A0A0</color>
     <color name="ic_launcher_background">#0B1528</color>
     
-    <!-- Widget Light Mode Colors -->
+    <!-- Widget Light Mode Colors (Premium Redesign) -->
     <color name="widget_bg_start">#FFFFFF</color>
-    <color name="widget_bg_center">#F8FBFF</color>
-    <color name="widget_bg_end">#FFFFFF</color>
-    <color name="widget_border">#22000000</color>
-    <color name="widget_text_primary">#1A1A1A</color>
-    <color name="widget_text_secondary">#475569</color>
+    <color name="widget_bg_center">#FAFCFF</color>
+    <color name="widget_bg_end">#F5F0EB</color>
+    <color name="widget_border">#18B8891A</color>
+    <color name="widget_text_primary">#1A1A2E</color>
+    <color name="widget_text_secondary">#64748B</color>
     <color name="widget_text_accent">#B8891A</color>
+    <color name="widget_text_muted">#94A3B8</color>
     <color name="widget_icon_tint">#B8891A</color>
-    <color name="widget_divider">#1A000000</color>
-    <color name="widget_header_bg">#0D000000</color>
+    <color name="widget_divider">#12000000</color>
+    <color name="widget_header_bg">#08000000</color>
+    <color name="widget_accent_start">#C8962E</color>
+    <color name="widget_accent_end">#E6B84E</color>
+    <color name="widget_pill_bg">#0AB8891A</color>
+    <color name="widget_pill_border">#18B8891A</color>
+    <color name="widget_highlight_bg">#0CB8891A</color>
+    <color name="widget_calendar_grid_text">#334155</color>
+    <color name="widget_calendar_header_text">#94A3B8</color>
+    <color name="widget_today_text">#FFFFFF</color>
 </resources>

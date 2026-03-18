@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <style>
+    @font-face {
+      font-family: 'p1';
+      src: url('https://verses.quran.foundation/fonts/quran/hafs/v2/woff2/p1.woff2') format('woff2');
+    }
+    .page {
+      font-family: 'p1';
+      width: 400px;
+      height: 600px;
+      border: 1px solid black;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 20px;
+      font-size: 24px;
+    }
+    .line {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+    }
+    .center {
+      justify-content: center;
+      gap: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page" id="res">Loading...</div>
+  <script>
+    fetch('https://api.quran.com/api/v4/verses/by_page/1?words=true&word_fields=code_v2,line_number,text_qpc_hafs')
+      .then(res => res.json())
+      .then(data => {
+        let lines = {};
+        data.verses.forEach(v => {
+          v.words.forEach(w => {
+            if(!lines[w.line_number]) lines[w.line_number] = [];
+            lines[w.line_number].push(w.code_v2);
+          });
+        });
+        
+        let html = '';
+        Object.keys(lines).sort((a,b)=>a-b).forEach(l => {
+          const isCenter = lines[l].length < 4 || l == 1 || l == 2;
+          html += `<div class="line ${isCenter ? 'center' : ''}">${lines[l].join('</span><span>')}</div>`;
+        });
+        document.getElementById('res').innerHTML = html;
+      });
+  </script>
+</body>
+</html>

@@ -16,6 +16,8 @@ export interface PrayerData {
     hijriMonth: string;
     hijriYear: string;
     hijriMonthEn: string;
+    hijriMonthValue: number;
+    hijriDay: number;
     gregorianDate: string;
 }
 
@@ -127,6 +129,8 @@ export async function fetchPrayerTimes(location: string, methodId: string = '3',
         hijriMonth: json.data.date.hijri.month.ar,
         hijriYear: json.data.date.hijri.year,
         hijriMonthEn: json.data.date.hijri.month.en,
+        hijriMonthValue: parseInt(json.data.date.hijri.month.number),
+        hijriDay: parseInt(json.data.date.hijri.day),
         gregorianDate: json.data.date.gregorian.date,
     };
 

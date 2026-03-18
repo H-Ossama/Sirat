@@ -31,12 +31,12 @@ public class NextPrayerWidget extends AppWidgetProvider {
 
         // Open app on click
         Intent intent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("me3raj://app/home"));
-        PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, 
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent pendingIntent = PendingIntent.getActivity(context, 101, intent, 
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         views.setOnClickPendingIntent(R.id.widget_layout_root, pendingIntent);
-
-        ComponentName thisWidget = new ComponentName(context, NextPrayerWidget.class);
-        appWidgetManager.updateAppWidget(thisWidget, views);
+        
+        appWidgetManager.updateAppWidget(appWidgetId, views);
     }
 
     @Override

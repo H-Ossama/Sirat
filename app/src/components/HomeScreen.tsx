@@ -40,7 +40,7 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
     const [cardSlide, setCardSlide] = useState(0); // 0 = verse, 1 = hadith
     const touchStartX = useRef(0);
     const dailyVerse = getDailyVerse();
-    
+
     const [isSharingHadith, setIsSharingHadith] = useState(false);
     const [savedHadithIndex, setSavedHadithIndex] = useState<number | null>(() => {
         const saved = localStorage.getItem('saved_hadith_index');
@@ -120,17 +120,17 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
         try {
             const cardElement = document.getElementById('share-card-hadith');
             if (!cardElement) return;
-            
+
             const dataUrl = await toPng(cardElement, { cacheBust: true, quality: 0.95 });
             const base64Data = dataUrl.split(',')[1];
             const fileName = `hadith_${todayHadithIndex}.png`;
-            
+
             const savedFile = await Filesystem.writeFile({
                 path: fileName,
                 data: base64Data,
                 directory: Directory.Cache
             });
-            
+
             await Share.share({
                 title: 'حديث اليوم',
                 url: savedFile.uri,
@@ -245,7 +245,7 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
 
             {/* ── Hero Card: Next Prayer ── */}
             <div className="px-5 mb-5">
-                <button 
+                <button
                     onClick={() => {
                         const prayerList = document.getElementById('prayer-times-list');
                         if (prayerList) {
@@ -255,9 +255,9 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
                         }
                     }}
                     className={`w-full text-right relative rounded-[2rem] overflow-hidden transition-all duration-500 active:scale-[0.98] ${isDark
-                    ? 'bg-gradient-to-br from-[#111e35] via-[#0f1a2e] to-[#0a1220] border border-white/[0.06] shadow-2xl shadow-black/50'
-                    : 'bg-white border border-slate-100/80 shadow-[0_8px_40px_rgba(0,0,0,0.06)]'
-                    }`}>
+                        ? 'bg-gradient-to-br from-[#111e35] via-[#0f1a2e] to-[#0a1220] border border-white/[0.06] shadow-2xl shadow-black/50'
+                        : 'bg-white border border-slate-100/80 shadow-[0_8px_40px_rgba(0,0,0,0.06)]'
+                        }`}>
                     {/* Decorative glows */}
                     <div className={`absolute top-0 right-0 w-56 h-56 rounded-full blur-[90px] pointer-events-none ${isDark ? 'bg-gold-500/8' : 'bg-gold-300/15'}`} />
                     <div className={`absolute bottom-0 left-0 w-40 h-40 rounded-full blur-[70px] pointer-events-none ${isDark ? 'bg-blue-500/5' : 'bg-blue-100/30'}`} />
@@ -444,7 +444,7 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
                 </div>
                 <div className="grid grid-cols-4 gap-3">
                     {[
-                        { img: '/assets/quick-actions/quran.png', label: 'القرآن', screen: 'quran' },
+                        { img: '/assets/quick-actions/quran.png', label: 'المصحف الشريف', screen: 'quran' },
                         { img: '/assets/quick-actions/hadith.png', label: 'الحديث', screen: 'hadith' },
                         { img: '/assets/quick-actions/duas.png', label: 'الأدعية', screen: 'duas' },
                         { img: '/assets/quick-actions/adhkar.png', label: 'الأذكار', screen: 'adhkar' },
@@ -475,8 +475,8 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
                 <div className="px-5 mb-5" dir="rtl">
                     <button
                         onClick={() => onNavigate('women')}
-                        className={`w-full p-5 rounded-[2rem] flex items-center justify-between border relative overflow-hidden group ${isDark 
-                            ? 'bg-gradient-to-br from-pink-500/[0.1] to-purple-500/[0.05] border-pink-400/[0.15]' 
+                        className={`w-full p-5 rounded-[2rem] flex items-center justify-between border relative overflow-hidden group ${isDark
+                            ? 'bg-gradient-to-br from-pink-500/[0.1] to-purple-500/[0.05] border-pink-400/[0.15]'
                             : 'bg-gradient-to-br from-pink-50 to-purple-50 border-pink-100 shadow-sm'}`}
                     >
                         <div className="relative z-10 flex items-center gap-4">
@@ -502,15 +502,15 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
                 <div id="share-card-hadith" className="w-[1080px] h-[1080px] bg-gradient-to-b from-[#0b1929] to-[#0a1525] flex flex-col items-center justify-center p-16 text-center relative" dir="rtl">
                     <div className="absolute inset-0 border-[20px] border-gold-500/20 m-8 rounded-[40px]" />
                     <div className="absolute inset-0 border-2 border-gold-500/40 m-12 rounded-[30px]" />
-                    
+
                     <svg className="w-24 h-24 text-gold-500 mb-12 opacity-80" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
                     </svg>
-                    
+
                     <p className="text-[50px] font-scheherazade text-white leading-relaxed mb-16 px-12" style={{ fontFamily: "'Scheherazade New', serif" }}>
                         « {todayHadith.arabic} »
                     </p>
-                    
+
                     <div className="flex flex-col items-center gap-4">
                         <p className="text-[32px] font-amiri text-gold-400" style={{ fontFamily: "'Amiri', serif" }}>رواه {todayHadith.source}</p>
                         <div className="w-32 h-1 bg-gold-500/30 rounded-full my-4" />
@@ -541,13 +541,13 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
                         }}
                     >
                         {/* ── Card 0: Daily Verse (appears on right when slide is 0) ── */}
-                        <div className="w-1/2 flex-shrink-0 p-5">
+                        <div className="w-1/2 flex-shrink-0 p-5 cursor-pointer active:bg-black/5 transition-all" onClick={() => onNavigate(`quran:${dailyVerse.surahId}:${dailyVerse.page}:${dailyVerse.number}`)}>
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center gap-2">
                                     <div className={`w-1 h-5 rounded-full ${isDark ? 'bg-gold-400/40' : 'bg-gold-400'}`} />
                                     <p className={`text-[10px] font-bold uppercase tracking-[3px] ${isDark ? 'text-gold-400/40' : 'text-gold-600/70'}`}>آية اليوم</p>
                                 </div>
-                                <button onClick={() => setCardSlide(1)} className={`text-[10px] font-bold px-2.5 py-1 rounded-full border transition-all active:scale-95 ${isDark ? 'border-white/[0.08] text-white/25 hover:text-white/50' : 'border-slate-100 text-slate-300 hover:text-slate-500'}`}>
+                                <button onClick={(e) => { e.stopPropagation(); setCardSlide(1); }} className={`text-[10px] font-bold px-2.5 py-1 rounded-full border transition-all active:scale-95 z-20 ${isDark ? 'border-white/[0.08] text-white/25 hover:text-white/50' : 'border-slate-100 text-slate-300 hover:text-slate-500'}`}>
                                     الحديث ←
                                 </button>
                             </div>

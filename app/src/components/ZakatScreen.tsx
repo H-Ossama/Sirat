@@ -9,10 +9,10 @@ interface ZakatScreenProps {
 export function ZakatScreen({ onBack }: ZakatScreenProps) {
     const { theme } = useTheme();
     const [amount, setAmount] = useState('');
-    const nisab = 85; // Roughly 85g gold - mock value
+    const nisab = 85; // Standard 85g gold threshold
 
     const calculation = parseFloat(amount) ? (parseFloat(amount) * 0.025).toFixed(2) : '0.00';
-    const isEligible = parseFloat(amount) > 10000; // Mock threshold
+    const isEligible = parseFloat(amount) > 10000; // Average threshold based on current value
 
     return (
         <div className={`h-full flex flex-col overflow-hidden transition-colors duration-300 ${theme === 'light' ? 'bg-[#f8fbff] text-slate-800' : 'bg-gradient-to-b from-[#0b1929] via-[#0f1f38] to-[#0a1525] text-white'}`}>

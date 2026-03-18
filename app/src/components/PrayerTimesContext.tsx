@@ -67,33 +67,48 @@ export function PrayerTimesProvider({ children }: { children: React.ReactNode })
     const hasInitialLoaded = useRef(false);
     const lastPlayedPrayerRef = useRef<string | null>(null);
 
-    // Update Widget
+    // Update Widgets
+    const widgetIntervalRef = useRef<NodeJS.Timeout | null>(null);
     useEffect(() => {
         if (prayerData) {
             const updateWidget = async () => {
+                console.log('--- Triggering Widgets Update ---');
                 try {
-                    const next = getNextPrayer(prayerData.prayers);
+                    const now = new Date();
+                    const gregDateStr = now.toLocaleDateString('ar-SA', { day: 'numeric', month: 'long', year: 'numeric' });
+                    const hijriDayVal = prayerData.hijriDay || parseInt(prayerData.hijriDate.split(' ')[0]) || 1;
+
+                    // 1. Next Prayer & Remaining Time
+                    const nextP = getNextPrayer(prayerData.prayers);
+                    console.log('Updating Next Prayer:', nextP.prayer.nameAr);
                     await Widget.update({
-                        nameAr: next.prayer.nameAr,
-                        time: next.prayer.time,
-                        remaining: next.remaining
+                        nameAr: nextP.prayer.nameAr,
+                        time: nextP.prayer.time,
+                        remaining: nextP.remaining
                     });
 
+                    // 2. Hijri Date Widget
+                    console.log('Updating Hijri:', `${hijriDayVal} ${prayerData.hijriMonth}`);
                     await Widget.updateHijri({
-                        dayName: new Date().toLocaleDateString('ar-SA', { weekday: 'long' }),
-                        date: `${prayerData.hijriDate.split(' ')[0]} ${prayerData.hijriMonth}`,
-                        year: `${prayerData.hijriYear} هـ`
+                        dayName: now.toLocaleDateString('ar-SA', { weekday: 'long' }),
+                        date: `${hijriDayVal} ${prayerData.hijriMonth}`,
+                        year: `${prayerData.hijriYear} هـ`,
+                        gregorian: gregDateStr,
+                        hDay: hijriDayVal,
+                        hMonthIndex: prayerData.hijriMonthValue || 1
                     });
 
-                    // We can just keep a static friendly message or load morning/evening status
-                    const currentHour = new Date().getHours();
-                    const isMorning = currentHour < 12;
+                    // 3. Athkar Widget
+                    console.log('Updating Athkar Widget');
+                    const isMorning = now.getHours() < 12;
                     await Widget.updateAthkar({
                         title: "أذكار اليوم",
                         status: isMorning ? "أذكار الصباح ☀️" : "أذكار المساء 🌙",
                         msg: "اضغط للقراءة والتسبيح"
                     });
 
+                    // 4. Schedule Widget
+                    console.log('Updating Schedule Widget');
                     const p = prayerData.prayers;
                     const getT = (name: string) => p.find(x => x.name === name)?.time || '--:--';
                     await Widget.updateSchedule({
@@ -104,6 +119,8 @@ export function PrayerTimesProvider({ children }: { children: React.ReactNode })
                         isha: getT('Isha')
                     });
 
+                    // 5. Inspiration Widget
+                    console.log('Updating Inspiration Widget');
                     const INSPIRATIONS = [
                         { text: "وَإِذَا سَأَلَكَ عِبَادِي عَنِّي فَإِنِّي قَرِيبٌ", source: "سورة البقرة: 186" },
                         { text: "فَإِنَّ مَعَ الْعُسْرِ يُسْرًا", source: "سورة الشرح: 5" },
@@ -115,44 +132,50 @@ export function PrayerTimesProvider({ children }: { children: React.ReactNode })
                         { text: "يا حي يا قيوم برحمتك أستغيث", source: "دعاء مأثور" },
                         { text: "وَسِيقَ الَّذِينَ اتَّقَوْا رَبَّهُمْ إِلَى الْجَنَّةِ زُمَرًا", source: "سورة الزمر: 73" }
                     ];
-
-                    const dayOfYear = Math.floor((new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24);
+                    const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24);
                     const inspiration = INSPIRATIONS[dayOfYear % INSPIRATIONS.length];
-
                     await Widget.updateInspiration({
                         text: inspiration.text,
                         source: inspiration.source
                     });
 
-                    // Check for Athan playback
-                    const date = new Date();
-                    const currentHHMM = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-                    const athanSettings = getAthanSettings();
-
-                    for (const p of prayerData.prayers) {
-                        if (p.time === currentHHMM) {
-                            const playKey = `${date.toDateString()}_${p.name}`;
-                            if (lastPlayedPrayerRef.current !== playKey) {
-                                lastPlayedPrayerRef.current = playKey;
-                                const config = athanSettings.prayerConfigs[p.name as keyof typeof athanSettings.prayerConfigs];
-                                if (!athanSettings.globalMuted && config && config.enabled) {
-                                    playAthan(p.name, p.nameAr);
-                                }
-                            }
+                    // 6. Calendar Grid
+                    try {
+                        console.log('Updating Calendar Grid Widget');
+                        const calYear = now.getFullYear();
+                        const calMonth = now.getMonth() + 1;
+                        const daysInMonth = new Date(calYear, calMonth, 0).getDate();
+                        const todayDate = now.getDate();
+                        const hijriDays: string[] = [];
+                        for (let d = 1; d <= daysInMonth; d++) {
+                            const offset = d - todayDate;
+                            let hDay = hijriDayVal + offset;
+                            if (hDay < 1) hDay = 30 + hDay;
+                            if (hDay > 30) hDay = hDay - 30;
+                            hijriDays.push(String(hDay));
                         }
+                        await Widget.updateCalendar({
+                            year: calYear,
+                            month: calMonth,
+                            data: hijriDays.join(','),
+                            hijriTitle: `${prayerData.hijriMonth} ${prayerData.hijriYear}`,
+                            hijriSubtitle: `${now.toLocaleString('ar-SA', { month: 'long' })} ${now.getFullYear()}`
+                        });
+                    } catch (calErr) {
+                        console.warn('Failed to update calendar widget', calErr);
                     }
-
-                } catch (e) {
-                    console.warn('Failed to update widgets', e);
+                } catch (widgErr) {
+                    console.warn('General widget update failed', widgErr);
                 }
             };
-            updateWidget();
 
-            // Re-update every 10 seconds to refresh "remaining" time and check athan playback precisely
-            const interval = setInterval(updateWidget, 10000);
-            return () => clearInterval(interval);
+            updateWidget();
+            if (widgetIntervalRef.current) clearInterval(widgetIntervalRef.current);
+            widgetIntervalRef.current = setInterval(updateWidget, 10000);
+            return () => { if (widgetIntervalRef.current) clearInterval(widgetIntervalRef.current); };
         }
     }, [prayerData]);
+
 
     const load = useCallback(async (locationStr: string, mid: string, sch: number, currentOffsets: PrayerOffsets) => {
         if (!locationStr) return;
@@ -190,18 +213,26 @@ export function PrayerTimesProvider({ children }: { children: React.ReactNode })
             setPrayerData(adjustedData);
 
             const settings = getNotificationSettings();
-            const isRamadan = data.hijriMonthEn === 'Ramadan';
-            await scheduleAllNotifications(adjustedPrayers, settings, isRamadan);
-            // Schedule athan notifications
             const athanSettings = getAthanSettings();
-            await scheduleAthanNotifications({ prayers: adjustedPrayers, settings: athanSettings });
+            const isRamadan = data.hijriMonthEn === 'Ramadan';
+            
+            await scheduleAllNotifications(
+                adjustedPrayers, 
+                settings, 
+                isRamadan, 
+                athanSettings, 
+                locationStr, 
+                mid, 
+                sch, 
+                currentOffsets
+            );
         } catch (err: any) {
             setError(err.message || 'تعذّر تحميل مواقيت الصلاة');
             console.error(err);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [city, coords, methodId, school, prayerOffsets]);
 
     // Load when settings change
     useEffect(() => {

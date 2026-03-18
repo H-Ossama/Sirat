@@ -24,16 +24,9 @@ public class WidgetPlugin extends Plugin {
         editor.putString("widget_next_prayer_name_ar", nameAr);
         editor.putString("widget_next_prayer_time", time);
         editor.putString("widget_next_prayer_remaining", remaining);
-        editor.commit(); // Use commit for immediate write
+        editor.apply();
 
-        // Trigger widget update
-        Context context = getContext();
-        AppWidgetManager widgetManager = AppWidgetManager.getInstance(context);
-        int[] ids = widgetManager.getAppWidgetIds(new ComponentName(context, NextPrayerWidget.class));
-        for (int id : ids) {
-            NextPrayerWidget.updateAppWidget(context, widgetManager, id);
-        }
-
+        updateNativeWidgets(NextPrayerWidget.class);
         call.resolve();
     }
 
@@ -42,21 +35,21 @@ public class WidgetPlugin extends Plugin {
         String dayName = call.getString("dayName");
         String date = call.getString("date");
         String year = call.getString("year");
+        String gregorian = call.getString("gregorian", "");
+        int hDay = call.getInt("hDay", 1);
+        int hMonthIndex = call.getInt("hMonthIndex", 1);
 
         SharedPreferences prefs = getContext().getSharedPreferences("Me3rajWidgetPrefs", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString("widget_hijri_day_name", dayName);
         editor.putString("widget_hijri_date", date);
         editor.putString("widget_hijri_year", year);
-        editor.commit();
+        editor.putString("widget_hijri_gregorian", gregorian);
+        editor.putInt("widget_hijri_day_num", hDay);
+        editor.putInt("widget_hijri_month_index", hMonthIndex);
+        editor.apply();
 
-        Context context = getContext();
-        AppWidgetManager widgetManager = AppWidgetManager.getInstance(context);
-        int[] ids = widgetManager.getAppWidgetIds(new ComponentName(context, HijriDateWidget.class));
-        for (int id : ids) {
-            HijriDateWidget.updateAppWidget(context, widgetManager, id);
-        }
-
+        updateNativeWidgets(HijriDateWidget.class);
         call.resolve();
     }
 
@@ -71,15 +64,9 @@ public class WidgetPlugin extends Plugin {
         editor.putString("widget_athkar_title", title);
         editor.putString("widget_athkar_status", status);
         editor.putString("widget_athkar_msg", msg);
-        editor.commit();
+        editor.apply();
 
-        Context context = getContext();
-        AppWidgetManager widgetManager = AppWidgetManager.getInstance(context);
-        int[] ids = widgetManager.getAppWidgetIds(new ComponentName(context, AthkarWidget.class));
-        for (int id : ids) {
-            AthkarWidget.updateAppWidget(context, widgetManager, id);
-        }
-
+        updateNativeWidgets(AthkarWidget.class);
         call.resolve();
     }
 
@@ -98,15 +85,9 @@ public class WidgetPlugin extends Plugin {
         editor.putString("widget_schedule_asr", asr);
         editor.putString("widget_schedule_maghrib", maghrib);
         editor.putString("widget_schedule_isha", isha);
-        editor.commit();
+        editor.apply();
 
-        Context context = getContext();
-        AppWidgetManager widgetManager = AppWidgetManager.getInstance(context);
-        int[] ids = widgetManager.getAppWidgetIds(new ComponentName(context, PrayerScheduleWidget.class));
-        for (int id : ids) {
-            PrayerScheduleWidget.updateAppWidget(context, widgetManager, id);
-        }
-
+        updateNativeWidgets(PrayerScheduleWidget.class);
         call.resolve();
     }
 
@@ -119,15 +100,47 @@ public class WidgetPlugin extends Plugin {
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString("widget_inspiration_text", text);
         editor.putString("widget_inspiration_source", source);
-        editor.commit();
+        editor.apply();
 
-        Context context = getContext();
-        AppWidgetManager widgetManager = AppWidgetManager.getInstance(context);
-        int[] ids = widgetManager.getAppWidgetIds(new ComponentName(context, InspirationWidget.class));
-        for (int id : ids) {
-            InspirationWidget.updateAppWidget(context, widgetManager, id);
-        }
-
+        updateNativeWidgets(InspirationWidget.class);
         call.resolve();
     }
+
+    @PluginMethod
+    public void updateCalendar(PluginCall call) {
+        int year = call.getInt("year", 0);
+        int month = call.getInt("month", 0);
+        String data = call.getString("data", "");
+        String hijriTitle = call.getString("hijriTitle", "");
+        String hijriSubtitle = call.getString("hijriSubtitle", "");
+
+        SharedPreferences prefs = getContext().getSharedPreferences("Me3rajWidgetPrefs", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString("widget_cal_" + year + "_" + month, data);
+        editor.putString("widget_cal_hijri_title_" + year + "_" + month, hijriTitle);
+        editor.putString("widget_cal_hijri_subtitle_" + year + "_" + month, hijriSubtitle);
+        editor.apply();
+
+        updateNativeWidgets(CalendarWidget.class);
+        call.resolve();
+    }
+
+    private void updateNativeWidgets(Class<?> widgetClass) {
+        Context context = getContext();
+        AppWidgetManager widgetManager = AppWidgetManager.getInstance(context);
+        int[] ids = widgetManager.getAppWidgetIds(new ComponentName(context, widgetClass));
+        for (int id : ids) {
+            try {
+                if (widgetClass == NextPrayerWidget.class) NextPrayerWidget.updateAppWidget(context, widgetManager, id);
+                else if (widgetClass == HijriDateWidget.class) HijriDateWidget.updateAppWidget(context, widgetManager, id);
+                else if (widgetClass == AthkarWidget.class) AthkarWidget.updateAppWidget(context, widgetManager, id);
+                else if (widgetClass == PrayerScheduleWidget.class) PrayerScheduleWidget.updateAppWidget(context, widgetManager, id);
+                else if (widgetClass == InspirationWidget.class) InspirationWidget.updateAppWidget(context, widgetManager, id);
+                else if (widgetClass == CalendarWidget.class) CalendarWidget.updateAppWidget(context, widgetManager, id);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
 }

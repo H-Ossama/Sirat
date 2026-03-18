@@ -23,12 +23,12 @@ public class InspirationWidget extends AppWidgetProvider {
         views.setTextViewText(R.id.inspiration_source, source);
 
         Intent intent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("me3raj://app/quran"));
-        PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, 
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent pendingIntent = PendingIntent.getActivity(context, 104, intent, 
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         views.setOnClickPendingIntent(R.id.widget_inspiration_root, pendingIntent);
-
-        ComponentName thisWidget = new ComponentName(context, InspirationWidget.class);
-        appWidgetManager.updateAppWidget(thisWidget, views);
+        
+        appWidgetManager.updateAppWidget(appWidgetId, views);
     }
 
     @Override

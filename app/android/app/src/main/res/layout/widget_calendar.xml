@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_calendar_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg_gradient"
+    android:clipToPadding="false"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <!-- Header: Navigation + Month/Year + Toggle -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="4dp">
+
+        <!-- Previous Month Button -->
+        <TextView
+            android:id="@+id/btn_prev_month"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:background="@drawable/widget_nav_btn_bg"
+            android:gravity="center"
+            android:text="‹"
+            android:textColor="@color/widget_text_accent"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <!-- Month / Year Header -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:layout_centerVertical="true"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/calendar_month_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="رمضان 1447"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/calendar_subtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="مارس 2026"
+                android:textColor="@color/widget_text_muted"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <!-- Next Month Button -->
+        <TextView
+            android:id="@+id/btn_next_month"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="@drawable/widget_nav_btn_bg"
+            android:gravity="center"
+            android:text="›"
+            android:textColor="@color/widget_text_accent"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+    </RelativeLayout>
+
+    <!-- Toggle Hijri/Gregorian -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="4dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/btn_toggle_calendar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_pill_bg"
+            android:paddingStart="14dp"
+            android:paddingTop="3dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="3dp"
+            android:text="هجري ⟷ ميلادي"
+            android:textColor="@color/widget_text_accent"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/btn_go_today"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/widget_pill_bg"
+            android:paddingStart="14dp"
+            android:paddingTop="3dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="3dp"
+            android:text="اليوم"
+            android:textColor="@color/widget_text_accent"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Day Headers Row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="2dp"
+        android:orientation="horizontal"
+        android:weightSum="7">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="أح"
+            android:textColor="@color/widget_calendar_header_text"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="إث"
+            android:textColor="@color/widget_calendar_header_text"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="ثل"
+            android:textColor="@color/widget_calendar_header_text"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="أر"
+            android:textColor="@color/widget_calendar_header_text"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="خم"
+            android:textColor="@color/widget_calendar_header_text"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="جم"
+            android:textColor="@color/widget_text_accent"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="سب"
+            android:textColor="@color/widget_calendar_header_text"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Calendar Grid: 6 rows x 7 columns -->
+    <!-- Row 1 -->
+    <LinearLayout
+        android:id="@+id/cal_row_1"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:weightSum="7">
+
+        <TextView android:id="@+id/cal_1_1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_1_2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_1_3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_1_4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_1_5" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_1_6" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_1_7" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- Row 2 -->
+    <LinearLayout
+        android:id="@+id/cal_row_2"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:weightSum="7">
+
+        <TextView android:id="@+id/cal_2_1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_2_2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_2_3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_2_4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_2_5" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_2_6" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_2_7" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- Row 3 -->
+    <LinearLayout
+        android:id="@+id/cal_row_3"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:weightSum="7">
+
+        <TextView android:id="@+id/cal_3_1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_3_2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_3_3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_3_4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_3_5" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_3_6" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_3_7" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- Row 4 -->
+    <LinearLayout
+        android:id="@+id/cal_row_4"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:weightSum="7">
+
+        <TextView android:id="@+id/cal_4_1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_4_2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_4_3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_4_4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_4_5" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_4_6" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_4_7" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- Row 5 -->
+    <LinearLayout
+        android:id="@+id/cal_row_5"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:weightSum="7">
+
+        <TextView android:id="@+id/cal_5_1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_5_2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_5_3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_5_4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_5_5" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_5_6" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_5_7" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- Row 6 -->
+    <LinearLayout
+        android:id="@+id/cal_row_6"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:weightSum="7">
+
+        <TextView android:id="@+id/cal_6_1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_6_2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_6_3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_6_4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_6_5" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_6_6" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+        <TextView android:id="@+id/cal_6_7" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:textColor="@color/widget_calendar_grid_text" android:textSize="11sp" />
+    </LinearLayout>
+
+</LinearLayout>

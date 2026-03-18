@@ -608,93 +608,46 @@ export async function setupAthanNotificationChannel(): Promise<void> {
 }
 
 export interface ScheduleAthanNotificationsParams {
-    prayers: { name: string; nameAr: string; time: string }[];
+    location?: string;
+    methodId?: string;
+    school?: number;
+    offsets?: Record<string, number>;
     settings: AthanSettings;
 }
 
+/**
+ * Schedules Athan notifications for the next 7 days.
+ * Precise scheduling (no daily repeat) ensures accuracy as prayer times shift.
+ */
 export async function scheduleAthanNotifications({
-    prayers,
+    location,
+    methodId,
+    school,
+    offsets,
     settings,
 }: ScheduleAthanNotificationsParams): Promise<void> {
-    try {
-        // Cancel existing athan notifications (IDs 200-299)
-        await LocalNotifications.cancel({
-            notifications: Array.from({ length: 100 }, (_, i) => ({ id: 200 + i })),
-        });
-
-        if (settings.globalMuted) return;
-
-        const notifications: any[] = [];
-        let id = 200;
-
-        for (const prayer of prayers) {
-            const config = settings.prayerConfigs[prayer.name as PrayerWithAthan];
-            if (!config || !config.enabled) continue;
-
-            const [h, m] = prayer.time.split(':').map(Number);
-            const prayerDate = new Date();
-            prayerDate.setHours(h, m, 0, 0);
-
-            const muezzin = getMuezzinById(config.muezzinId);
-            // Sound name (without extension) must exist in android/app/src/main/res/raw/
-            const soundFile = muezzin.audioFile.replace(/\.[^.]+$/, '');
-
-            // Main athan notification
-            notifications.push({
-                id: id++,
-                title: `🕌 أذان ${prayer.nameAr}`,
-                body: `حان وقت صلاة ${prayer.nameAr} — ${prayer.time}`,
-                schedule: {
-                    at: prayerDate,
-                    repeats: true,
-                    every: 'day',
-                },
-                sound: soundFile,
-                channelId: 'athan',
-                actionTypeId: 'ATHAN_ACTION',
-                smallIcon: 'ic_stat_icon',
-                iconColor: '#d4a520',
-                extra: {
-                    screen: 'home',
-                    prayer: prayer.name,
-                    prayerAr: prayer.nameAr,
-                    type: 'athan',
-                    muezzinId: config.muezzinId,
-                },
-            });
-
-            // Reminder before athan
-            if (config.reminderMinutes > 0) {
-                const reminderDate = new Date(prayerDate.getTime() - config.reminderMinutes * 60 * 1000);
-                notifications.push({
-                    id: id++,
-                    title: `⏰ ${config.reminderMinutes} دقائق على أذان ${prayer.nameAr}`,
-                    body: `استعد لصلاة ${prayer.nameAr} — سيحين الأذان قريباً`,
-                    schedule: {
-                        at: reminderDate,
-                        repeats: true,
-                        every: 'day',
-                    },
-                    sound: config.reminderSound === 'default' ? 'notification_reminder' : config.reminderSound,
-                    channelId: 'athan_reminder',
-                    smallIcon: 'ic_stat_icon',
-                    iconColor: '#c49a16',
-                    extra: {
-                        screen: 'home',
-                        prayer: prayer.name,
-                        type: 'athan_reminder',
-                    },
-                });
-            }
-        }
-
-        if (notifications.length > 0) {
-            await LocalNotifications.schedule({ notifications });
-        }
-    } catch (err) {
-        console.warn('Athan notifications not available (browser mode):', err);
-    }
+    const { scheduleAllNotifications, getNotificationSettings } = await import('./notificationService');
+    const nSettings = getNotificationSettings();
+    await scheduleAllNotifications(
+        [], // dummy
+        nSettings,
+        false, // handled inside master via settings check
+        settings,
+        location,
+        methodId,
+        school,
+        offsets
+    );
 }
+
+
+const PRAYERS_WITH_ATHAN_AR: Record<string, string> = {
+    Fajr: 'الفجر',
+    Dhuhr: 'الظهر',
+    Asr: 'العصر',
+    Maghrib: 'المغرب',
+    Isha: 'العشاء',
+};
 
 export async function registerAthanNotificationActions(): Promise<void> {
     try {

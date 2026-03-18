@@ -1,7 +1,21 @@
-// Quran data service using Quran.com API v4
+import { openDB, IDBPDatabase } from 'idb';
+
 const QURAN_COM_API = 'https://api.quran.com/api/v4';
 const AUDIO_BASE = 'https://verses.quran.com/';
 const FONT_BASE = 'https://verses.quran.foundation/fonts/quran/hafs/v2/woff2/';
+
+// ─── Offline Storage ─────────────────────────────────────────────────────────
+
+const DB_NAME = 'QuranOfflineV1';
+const STORE_PAGES = 'mushaf_pages';
+
+async function getDB() {
+    return openDB(DB_NAME, 1, {
+        upgrade(db) {
+            db.createObjectStore(STORE_PAGES);
+        },
+    });
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -24,8 +38,10 @@ export interface MushafWord {
     codeV2: string;
     lineNumber: number;
     pageNumber: number;
-    text: string;
+    text: string;           // Glyph code or text
+    textUthmani: string;    // Standard Unicode Arabic text
     translationText?: string;
+    verseNumber: number;
 }
 
 export interface MushafVerse {
@@ -40,8 +56,7 @@ export interface MushafVerse {
     textUthmani: string;
     words: MushafWord[];
     audioUrl?: string;      // full URL: https://verses.quran.com/Alafasy/mp3/112001.mp3
-    translation?: string;
-    tafsir?: string;
+    tafsirs?: { [id: number]: string };
 }
 
 /** Legacy Verse type — kept for list-mode & HomeScreen daily verse */
@@ -81,26 +96,31 @@ export interface Reciter {
 }
 
 export const RECITERS: Reciter[] = [
-    { id: '7',  name: 'Mishary Rashid Alafasy',       arabicName: 'مشاري راشد العفاسي',           islamicNetworkId: 'ar.alafasy' },
-    { id: '11', name: 'Yasser Al-Dosari',             arabicName: 'ياسر الدوسري',                 islamicNetworkId: 'ar.yasseraldossari' },
-    { id: '3',  name: 'Abdurrahman Al-Sudais',         arabicName: 'عبد الرحمن السديس',            islamicNetworkId: 'ar.abdurrahmaansudais' },
-    { id: '10', name: 'Saud Al-Shuraim',               arabicName: 'سعود الشريم',                  islamicNetworkId: 'ar.saoodshuraym' },
-    { id: '2',  name: 'Abdul Basit (Murattal)',        arabicName: 'عبد الباسط عبد الصمد (مرتل)',  islamicNetworkId: 'ar.abdulbasitmurattal' },
-    { id: '1',  name: 'Abdul Basit (Mujawwad)',        arabicName: 'عبد الباسط عبد الصمد (مجود)',  islamicNetworkId: 'ar.abdulsamad' },
-    { id: '9',  name: 'Mohamed Siddiq Al Minshawy',   arabicName: 'محمد صديق المنشاوي',           islamicNetworkId: 'ar.minshawi' },
-    { id: '8',  name: 'Mohamed Siddiq Al Minshawy (Mujawwad)', arabicName: 'محمد صديق المنشاوي (مجود)', islamicNetworkId: 'ar.minshawimujawwad' },
-    { id: '6',  name: 'Mahmoud Khalil Al-Husary',     arabicName: 'محمود خليل الحصري',            islamicNetworkId: 'ar.husary' },
+    { id: '7', name: 'Mishary Rashid Alafasy', arabicName: 'مشاري راشد العفاسي', islamicNetworkId: 'ar.alafasy' },
+    { id: '11', name: 'Yasser Al-Dosari', arabicName: 'ياسر الدوسري', islamicNetworkId: 'ar.yasseraldossari' },
+    { id: '3', name: 'Abdurrahman Al-Sudais', arabicName: 'عبد الرحمن السديس', islamicNetworkId: 'ar.abdurrahmaansudais' },
+    { id: '10', name: 'Saud Al-Shuraim', arabicName: 'سعود الشريم', islamicNetworkId: 'ar.saoodshuraym' },
+    { id: '2', name: 'Abdul Basit (Murattal)', arabicName: 'عبد الباسط عبد الصمد (مرتل)', islamicNetworkId: 'ar.abdulbasitmurattal' },
+    { id: '1', name: 'Abdul Basit (Mujawwad)', arabicName: 'عبد الباسط عبد الصمد (مجود)', islamicNetworkId: 'ar.abdulsamad' },
+    { id: '9', name: 'Mohamed Siddiq Al Minshawy', arabicName: 'محمد صديق المنشاوي', islamicNetworkId: 'ar.minshawi' },
+    { id: '8', name: 'Mohamed Siddiq Al Minshawy (Mujawwad)', arabicName: 'محمد صديق المنشاوي (مجود)', islamicNetworkId: 'ar.minshawimujawwad' },
+    { id: '6', name: 'Mahmoud Khalil Al-Husary', arabicName: 'محمود خليل الحصري', islamicNetworkId: 'ar.husary' },
     { id: '12', name: 'Mahmoud Khalil Al-Husary (Muallim)', arabicName: 'محمود خليل الحصري (معلم)', islamicNetworkId: 'ar.husarymujawwad' },
-    { id: '4',  name: 'Abu Bakr al-Shatri',            arabicName: 'أبو بكر الشاطري',             islamicNetworkId: 'ar.shaatree' },
-    { id: '5',  name: 'Hani ar-Rifai',                arabicName: 'هاني الرفاعي',                 islamicNetworkId: 'ar.hanirifai' },
-    { id: '11', name: 'Mohamed al-Tablawi',           arabicName: 'محمد محمود الطبلاوي',          islamicNetworkId: 'ar.muhammadayyoub' }, // Fallback to Ayyoub as Tablawi is not in islamic.network
-    { id: '7',  name: 'Ahmed ibn Ali al-Ajamy',       arabicName: 'أحمد بن علي العجمي',           islamicNetworkId: 'ar.ahmedajamy' }, // Using Alafasy ID for quran.com as Ajamy is not in v4 recitations list, but works in islamic.network
-    { id: '7',  name: 'Maher Al Muaiqly',             arabicName: 'ماهر المعيقلي',                islamicNetworkId: 'ar.mahermuaiqly' },
-    { id: '7',  name: 'Ali Abdur-Rahman al-Huthaify', arabicName: 'علي بن عبدالرحمن الحذيفي',     islamicNetworkId: 'ar.hudhaify' },
-    { id: '7',  name: 'Muhammad Jibreel',             arabicName: 'محمد جبريل',                   islamicNetworkId: 'ar.muhammadjibreel' },
-    { id: '7',  name: 'Abdullah Basfar',              arabicName: 'عبد الله بصفر',                islamicNetworkId: 'ar.abdullahbasfar' },
-    { id: '7',  name: 'Ibrahim Akhdar',               arabicName: 'إبراهيم الأخضر',               islamicNetworkId: 'ar.ibrahimakhbar' },
-    { id: '7',  name: 'Ayman Sowaid',                 arabicName: 'أيمن سويد',                    islamicNetworkId: 'ar.aymanswoaid' },
+    { id: '4', name: 'Abu Bakr al-Shatri', arabicName: 'أبو بكر الشاطري', islamicNetworkId: 'ar.shaatree' },
+    { id: '5', name: 'Hani ar-Rifai', arabicName: 'هاني الرفاعي', islamicNetworkId: 'ar.hanirifai' },
+    { id: '11', name: 'Mohamed al-Tablawi', arabicName: 'محمد محمود الطبلاوي', islamicNetworkId: 'ar.muhammadayyoub' }, // Fallback to Ayyoub as Tablawi is not in islamic.network
+    { id: '7', name: 'Ahmed ibn Ali al-Ajamy', arabicName: 'أحمد بن علي العجمي', islamicNetworkId: 'ar.ahmedajamy' }, // Using Alafasy ID for quran.com as Ajamy is not in v4 recitations list, but works in islamic.network
+    { id: '7', name: 'Maher Al Muaiqly', arabicName: 'ماهر المعيقلي', islamicNetworkId: 'ar.mahermuaiqly' },
+    { id: '7', name: 'Ali Abdur-Rahman al-Huthaify', arabicName: 'علي بن عبدالرحمن الحذيفي', islamicNetworkId: 'ar.hudhaify' },
+    { id: '7', name: 'Muhammad Jibreel', arabicName: 'محمد جبريل', islamicNetworkId: 'ar.muhammadjibreel' },
+    { id: '7', name: 'Abdullah Basfar', arabicName: 'عبد الله بصفر', islamicNetworkId: 'ar.abdullahbasfar' },
+    { id: '7', name: 'Ibrahim Akhdar', arabicName: 'إبراهيم الأخضر', islamicNetworkId: 'ar.ibrahimakhbar' },
+    { id: '7', name: 'Ayman Sowaid', arabicName: 'أيمن سويد', islamicNetworkId: 'ar.aymanswoaid' },
+];
+
+export const TAFSIR_SOURCES = [
+    { id: 14, name: 'تفسير ابن كثير', slug: 'ibn-kathir' },
+    { id: 90, name: 'تفسير القرطبي', slug: 'qurtubi' },
 ];
 
 // ─── Font helpers ─────────────────────────────────────────────────────────────
@@ -152,26 +172,51 @@ export async function fetchSurahs(): Promise<Surah[]> {
 
 export async function fetchMushafPage(
     pageNum: number,
-    recitationId: string = '7',
-    translationId = 131,
-    tafsirId = 169,
+    recitationId: string = '7'
 ): Promise<MushafVerse[]> {
-    const cacheKey = `mushaf_page_v4_${pageNum}_r${recitationId}`;
+    // 1. Check IndexedDB first (Full Offline)
+    try {
+        const db = await getDB();
+        const offlineData = await db.get(STORE_PAGES, pageNum);
+        if (offlineData) return offlineData;
+    } catch (e) {
+        console.warn('Offline DB error:', e);
+    }
+
+    // 2. Fallback to cache/online
+    const CACHE_VERSION = 'v10'; // Bumped for offline transition
+    const CACHE_PREFIX = `mushaf_page_${CACHE_VERSION}_`;
+    const cacheKey = `${CACHE_PREFIX}${pageNum}_r${recitationId}`;
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
         try { return JSON.parse(cached); } catch { /* fallthrough */ }
     }
 
+    // Only Qurtubi (90) works inline with by_page. Ibn Kathir (14) requires a separate by_chapter call.
     const url =
         `${QURAN_COM_API}/verses/by_page/${pageNum}` +
         `?words=true&per_page=50` +
         `&fields=text_uthmani,verse_key,chapter_id,juz_number,hizb_number,rub_el_hizb_number` +
-        `&word_fields=code_v1,code_v2,page_number,line_number,char_type_name,text,audio_url` +
-        `&translations=${translationId}&tafsirs=${tafsirId}&audio=${recitationId}`;
+        `&word_fields=code_v1,code_v2,page_number,line_number,char_type_name,text,text_uthmani,audio_url` +
+        `&tafsirs=90&audio=${recitationId}`;
 
     const res = await fetch(url);
     if (!res.ok) throw new Error(`Failed to fetch mushaf page ${pageNum}`);
     const data = await res.json();
+
+    // Collect unique chapter IDs on this page to fetch Ibn Kathir by chapter
+    const chapterIds: Set<number> = new Set((data.verses || []).map((v: any) => v.chapter_id as number));
+
+    // Fetch Ibn Kathir (ID 14) via by_chapter — the only reliable endpoint for this tafsir
+    const ibnKathirMap: { [verseKey: string]: string } = {};
+    await Promise.all(Array.from(chapterIds).map(async (chapId) => {
+        try {
+            const r = await fetch(`${QURAN_COM_API}/tafsirs/14/by_chapter/${chapId}?per_page=300`);
+            if (!r.ok) return;
+            const d = await r.json();
+            (d.tafsirs || []).forEach((t: any) => { ibnKathirMap[t.verse_key] = t.text; });
+        } catch { /* skip on error */ }
+    }));
 
     const verses: MushafVerse[] = (data.verses || []).map((v: any) => ({
         id: v.id,
@@ -193,11 +238,18 @@ export async function fetchMushafPage(
             lineNumber: w.line_number,
             pageNumber: w.page_number || pageNum,
             text: w.text || '',
+            textUthmani: w.text_uthmani || (w.char_type_name === 'word' ? w.text : ''),
             translationText: w.translation?.text,
+            verseNumber: v.verse_number,
         })),
         audioUrl: v.audio?.url ? `${AUDIO_BASE}${v.audio.url}` : undefined,
-        translation: v.translations?.[0]?.text,
-        tafsir: v.tafsirs?.[0]?.text,
+        tafsirs: {
+            ...((v.tafsirs || []).reduce((acc: any, t: any) => {
+                acc[t.resource_id] = t.text;
+                return acc;
+            }, {})),
+            14: ibnKathirMap[v.verse_key] || ibnKathirMap[v.id.toString()] || '',
+        },
     }));
 
     try {
@@ -212,7 +264,7 @@ export async function fetchMushafPage(
             }
         }
         keysToRemove.forEach(k => localStorage.removeItem(k));
-        
+
         try {
             localStorage.setItem(cacheKey, JSON.stringify(verses));
         } catch (e2) {
@@ -221,6 +273,74 @@ export async function fetchMushafPage(
     }
 
     return verses;
+}
+
+export async function fetchVerseTafsir(verseKey: string, tafsirId: number, pageNum?: number): Promise<string> {
+    if (pageNum) {
+        const verses = await fetchMushafPage(pageNum, '7');
+        const verse = verses.find(v => v.verseKey === verseKey);
+        return (verse?.tafsirs as any)?.[tafsirId] || '';
+    }
+
+    try {
+        const db = await getDB();
+        // Since we store by page, we need to find which page this verse belongs to.
+        // For simplicity, if it's not in the currently loaded page in UI, we fetch from API.
+        const res = await fetch(`${QURAN_COM_API}/quran/tafsirs/${tafsirId}?verse_key=${verseKey}`);
+        if (!res.ok) throw new Error('API request failed');
+        const data = await res.json();
+        return data.tafsir?.text || data.tafsirs?.[0]?.text || '';
+    } catch (e) {
+        return '';
+    }
+}
+
+// ─── Offline Download Logic ──────────────────────────────────────────────────
+
+export async function downloadFullQuran(onProgress: (progress: number) => void, signal?: AbortSignal): Promise<void> {
+    const totalPages = 604;
+    const db = await getDB();
+    
+    for (let p = 1; p <= totalPages; p++) {
+        if (signal?.aborted) throw new Error('Download cancelled');
+
+        // Check if already in DB
+        const exists = await db.get(STORE_PAGES, p);
+        if (exists) {
+            onProgress(Math.floor((p / totalPages) * 100));
+            continue;
+        }
+
+        try {
+            const pageData = await fetchMushafPage(p, '7');
+            await db.put(STORE_PAGES, pageData, p);
+            onProgress(Math.floor((p / totalPages) * 100));
+        } catch (e) {
+            console.error(`Failed to download page ${p}`, e);
+            throw e;
+        }
+    }
+}
+
+export async function checkOfflineStatus(): Promise<number> {
+    const db = await getDB();
+    const keys = await db.getAllKeys(STORE_PAGES);
+    return Math.floor((keys.length / 604) * 100);
+}
+
+export async function clearOfflineData(): Promise<void> {
+    const db = await getDB();
+    await db.clear(STORE_PAGES);
+    
+    // Also clear localStorage caches to ensure a fresh state
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('mushaf_page_v') || key.startsWith('quran_surah_v'))) {
+            keysToRemove.push(key);
+        }
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
 }
 
 // ─── Legacy verse fetch  (list mode) ─────────────────────────────────────────
@@ -281,7 +401,7 @@ export async function fetchVerses(surahNumber: number, islamicNetworkId: string 
             }
         }
         keysToRemove.forEach(k => localStorage.removeItem(k));
-        
+
         // Try one more time after clearing
         try {
             localStorage.setItem(cacheKey, JSON.stringify(verses));

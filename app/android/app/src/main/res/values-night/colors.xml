@@ -1,14 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Widget Dark Mode Colors -->
-    <color name="widget_bg_start">#080F1E</color>
-    <color name="widget_bg_center">#101C35</color>
+    <!-- Widget Dark Mode Colors (Premium Redesign) -->
+    <color name="widget_bg_start">#0A0F1F</color>
+    <color name="widget_bg_center">#0E1830</color>
     <color name="widget_bg_end">#0B1528</color>
-    <color name="widget_border">#4DD4A520</color>
-    <color name="widget_text_primary">#FFFFFF</color>
-    <color name="widget_text_secondary">#B0C4DE</color>
-    <color name="widget_text_accent">#D4A520</color>
-    <color name="widget_icon_tint">#D4A520</color>
-    <color name="widget_divider">#1AFFFFFF</color>
-    <color name="widget_header_bg">#1AFFFFFF</color>
+    <color name="widget_border">#30D4A520</color>
+    <color name="widget_text_primary">#F1F5F9</color>
+    <color name="widget_text_secondary">#94A3B8</color>
+    <color name="widget_text_accent">#E6B84E</color>
+    <color name="widget_text_muted">#475569</color>
+    <color name="widget_icon_tint">#E6B84E</color>
+    <color name="widget_divider">#12FFFFFF</color>
+    <color name="widget_header_bg">#12FFFFFF</color>
+    <color name="widget_accent_start">#D4A520</color>
+    <color name="widget_accent_end">#E6B84E</color>
+    <color name="widget_pill_bg">#18D4A520</color>
+    <color name="widget_pill_border">#30D4A520</color>
+    <color name="widget_highlight_bg">#18D4A520</color>
+    <color name="widget_calendar_grid_text">#CBD5E1</color>
+    <color name="widget_calendar_header_text">#64748B</color>
+    <color name="widget_today_text">#FFFFFF</color>
 </resources>

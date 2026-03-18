@@ -25,7 +25,7 @@ export default function AthanStylePicker({ currentStyle, currentCustomImage, isD
 
     const activeStyle = STYLES[index];
 
-    const mockState: AthanPlaybackState = {
+    const previewState: AthanPlaybackState = {
         isPlaying: true,
         isMuted: false,
         prayerName: 'Maghrib',
@@ -38,11 +38,11 @@ export default function AthanStylePicker({ currentStyle, currentCustomImage, isD
     const handlePrev = () => setIndex((index - 1 + STYLES.length) % STYLES.length);
 
     const longPressProps = useLongPress(() => {
-        console.log('Long press mocked');
+        // Long press handler for interaction
     });
 
     const sharedProps = {
-        state: mockState,
+        state: previewState,
         isDark,
         onMute: () => {},
         onStop: () => {},
