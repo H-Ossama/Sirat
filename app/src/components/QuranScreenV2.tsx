@@ -7,6 +7,7 @@ import { Share } from '@capacitor/share';
 import { Clipboard } from '@capacitor/clipboard';
 import { Directory, Filesystem } from '@capacitor/filesystem';
 import { toPng } from 'html-to-image';
+import { useBackHandler } from './BackHandlerContext';
 
 function toArabicNum(n: number | string): string {
   const arabic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
@@ -32,6 +33,17 @@ const TafsirIcon = ({ className }: { className?: string }) => (
 const FlagIcon = ({ className }: { className?: string }) => <svg viewBox="0 0 24 24" fill="currentColor" className={className}><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6h-5.6z" /></svg>;
 
 const JUZ_START_PAGES = [1, 22, 42, 62, 82, 102, 122, 142, 162, 182, 202, 222, 242, 262, 282, 302, 322, 342, 362, 382, 402, 422, 442, 462, 482, 502, 522, 542, 562, 582];
+
+const KHATM_DUAA = `صَدَقَ اللهُ الْعَظِيمُ وَبَلَّغَ رَسُولُهُ النَّبِيُّ الأُمِّيُّ الْكَرِيمُ، وَنَحْنُ عَلَى مَا قَالَ رَبُّنَا مِنَ الشَّاهِدِينَ.
+اللَّهُمَّ ارْحَمْنِي بِالْقُرْآنِ وَاجْعَلْهُ لِي إِمَامًا وَنُورًا وَهُدًى وَرَحْمَةً.
+اللَّهُمَّ ذَكِّرْنِي مِنْهُ مَا نُسِّيتُ وَعَلِّمْنِي مِنْهُ مَا جَهِلْتُ، وَارْزُقْنِي تِلاَوَتَهُ آنَاءَ اللَّيْلِ وَأَطْرَافَ النَّهَارِ، وَاجْعَلْهُ لِي حُجَّةً يَا رَبَّ الْعَالَمِينَ.
+اللَّهُمَّ أَصْلِحْ لِي دِينِي الَّذِي هُوَ عِصْمَةُ أَمْرِي، وَأَصْلِحْ لِي دُنْيَايَ الَّتِي فِيهَا مَعَاشِي، وَأَصْلِحْ لِي آخِرَتِي الَّتِي فِيهَا مَعَادِي، وَاجْعَلِ الْحَيَاةَ زِيَادَةً لِي فِي كُلِّ خَيْرٍ، وَاجْعَلِ الْمَوْتَ رَاحَةً لِي مِنْ كُلِّ شَرٍّ.
+اللَّهُمَّ اجْعَلْ خَيْرَ عُمْرِي آخِرَهُ وَخَيْرَ عَمَلِي خَوَاتِمَهُ، وَخَيْرَ أَيَّامِي يَوْمَ أَلْقَاكَ فِيهِ.
+اللَّهُمَّ إِنِّي أَسْأَلُكَ عِيشَةً هَنِيَّةً وَمِيتَةً سَوِيَّةً، وَمَرَدًّا غَيْرَ مُخْزٍ وَلاَ فَاضِحٍ.
+اللَّهُمَّ إِنِّي أَسْأَلُكَ خَيْرَ الْمَسْأَلَةِ وَخَيْرَ الدُّعَاءِ وَخَيْرَ النَّجَاحِ وَخَيْرَ الْعِلْمِ وَخَيْرَ الْعَمَلِ وَخَيْرَ الثَّوَابِ وَخَيْرَ الْحَيَاةِ وَخَيْرَ الْمَمَاتِ، وَثَبِّتْنِي وَثَقِّلْ مَوَازِينِي، وَحَقِّقْ إِيمَانِي، وَارْفَعْ دَرَجَتِي، وَتَقَبَّلْ صَلاَتِي، وَاغْفِرْ خَطِيئَتِي، وَأَسْأَلُكَ الْعُلاَ مِنَ الْجَنَّةِ.
+اللَّهُمَّ اغْفِرْ لِلْمُؤْمِنِينَ وَالْمُؤْمِنَاتِ، وَالْمُسْلِمِينَ وَالْمُسْلِمَاتِ، الأَحْيَاءِ مِنْهُمْ وَالأَمْوَاتِ.
+رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ.
+وَصَلَّى اللهُ عَلَى نَبِيِّنَا مُحَمَّدٍ وَعَلَى آلِهِ وَأَصْحَابِهِ الأَخْيَارِ وَسَلَّمَ تَسْلِيمًا كَثِيرًا.`;
 
 /** Reusable drag-to-close hook for bottom sheets */
 function useDragToClose(onClose: () => void) {
@@ -130,7 +142,15 @@ export function QuranScreenV2({ onBack, autoOpenSurahId, autoOpenPage, autoOpenV
   }, [showTafsir, selectedVerse, activeTafsirId]);
 
   // Audio
-  const [reciterId, setReciterId] = useState(() => localStorage.getItem('mushaf_reciter') || '7');
+  const [reciterId, setReciterId] = useState(() => {
+    const saved = localStorage.getItem('mushaf_reciter') || 'ar.alafasy';
+    // Migration: If it's the old numeric ID, find the new string ID
+    if (!saved.includes('.')) {
+      const r = RECITERS.find(rec => rec.id === saved) || RECITERS[0];
+      return r.islamicNetworkId;
+    }
+    return saved;
+  });
   const [playingVerseKey, setPlayingVerseKey] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -157,6 +177,14 @@ export function QuranScreenV2({ onBack, autoOpenSurahId, autoOpenPage, autoOpenV
       }, 100);
     }
   }, [showIndex, indexTab]);
+
+  useBackHandler(() => {
+      if (showIndex) { setShowIndex(false); return true; }
+      if (showSettings) { setShowSettings(false); return true; }
+      if (showTafsir) { setShowTafsir(false); return true; }
+      if (selectedVerse) { setSelectedVerse(null); return true; }
+      return false;
+  }, true);
 
   useEffect(() => {
     checkOfflineStatus().then(p => {
@@ -315,6 +343,15 @@ export function QuranScreenV2({ onBack, autoOpenSurahId, autoOpenPage, autoOpenV
     };
   }, []);
 
+  // Stop audio if reciter changes while playing
+  useEffect(() => {
+    if (isPlaying) {
+      audioRef.current?.pause();
+      setIsPlaying(false);
+      setPlayingVerseKey(null);
+    }
+  }, [reciterId]);
+
   // Update Settings
   useEffect(() => {
     document.documentElement.style.setProperty('--mushaf-font-scale', fontScale.toString());
@@ -331,6 +368,13 @@ export function QuranScreenV2({ onBack, autoOpenSurahId, autoOpenPage, autoOpenV
     let active = true;
     setLoading(true);
 
+    if (currentPage === 605) {
+      setVerses([]);
+      setLoading(false);
+      localStorage.setItem('mushaf_last_page', '605');
+      return;
+    }
+
     if (fontType === 'uthmani') {
       injectPageFont(currentPage);
     }
@@ -340,6 +384,12 @@ export function QuranScreenV2({ onBack, autoOpenSurahId, autoOpenPage, autoOpenV
         if (active) {
           setVerses(data);
           localStorage.setItem('mushaf_last_page', currentPage.toString());
+
+          // Sync selected verse to the new data (updates audioUrl)
+          setSelectedVerse(prev => {
+            if (!prev) return null;
+            return data.find(v => v.verseKey === prev.verseKey) || null;
+          });
 
           // Update last read (minimal fallback only if nothing saved)
           if (data.length > 0 && !localStorage.getItem('mushaf_last_read_pos')) {
@@ -421,7 +471,7 @@ export function QuranScreenV2({ onBack, autoOpenSurahId, autoOpenPage, autoOpenV
   };
 
   const handleNextPage = () => {
-    if (currentPage < 604) {
+    if (currentPage <= 604) {
       setCurrentPage(p => p + 1);
       setSelectedVerse(null);
     }
@@ -565,17 +615,19 @@ export function QuranScreenV2({ onBack, autoOpenSurahId, autoOpenPage, autoOpenV
     <div className={`fixed inset-0 z-50 flex flex-col ${themeClass} font-naskh transition-colors duration-300`} dir="rtl">
 
       {/* Top Bar */}
-      <div className="flex items-center justify-between px-4 py-3 bg-black/5 backdrop-blur-sm relative z-20">
+      <div className="flex items-center justify-between px-4 pb-3 bg-black/5 backdrop-blur-sm relative z-20" style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
         <button onClick={onBack} className="p-2 -mr-2 rounded-full hover:bg-black/5 active:scale-95 transition-all">
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
         </button>
 
         <div className="flex flex-col items-center flex-1 gap-1">
-          <span className="text-2xl font-amiri font-bold text-[var(--mushaf-accent)] leading-tight">سورة {currentSurahName}</span>
-          <div className="flex gap-2 text-xs font-bold items-center">
-            <span className="bg-black/5 px-3 py-1 rounded-full opacity-70">الجزء {currentJuz}</span>
-            <span className="bg-black/5 px-3 py-1 rounded-full opacity-70">الحزب {currentHizb}</span>
-          </div>
+          <span className="text-2xl font-amiri font-bold text-[var(--mushaf-accent)] leading-tight">{currentPage === 605 ? 'دعاء ختم القرآن' : `سورة ${currentSurahName}`}</span>
+          {currentPage === 605 ? null : (
+            <div className="flex gap-2 text-xs font-bold items-center">
+              <span className="bg-black/5 px-3 py-1 rounded-full opacity-70">الجزء {currentJuz}</span>
+              <span className="bg-black/5 px-3 py-1 rounded-full opacity-70">الحزب {currentHizb}</span>
+            </div>
+          )}
         </div>
 
         <div className="flex gap-1 -ml-2">
@@ -626,7 +678,7 @@ export function QuranScreenV2({ onBack, autoOpenSurahId, autoOpenPage, autoOpenV
 
       {/* Main Page Area */}
       <div 
-        className={`flex-1 relative w-full h-full ${fontScale > 1 ? 'overflow-auto' : 'overflow-hidden'} flex flex-col hide-scrollbar`}
+        className={`flex-1 relative w-full flex flex-col hide-scrollbar min-h-0 ${fontScale > 1 ? 'overflow-auto' : 'overflow-y-auto overflow-x-hidden'}`}
         style={{ touchAction: fontScale > 1 ? 'auto' : 'pan-y' }}
         onClick={() => setSelectedVerse(null)}
         onTouchStart={handleTouchStart}
@@ -637,8 +689,35 @@ export function QuranScreenV2({ onBack, autoOpenSurahId, autoOpenPage, autoOpenV
         {/* Main Mushaf Content */}
         <div className="flex-1 relative w-full flex items-center">
 
+          {currentPage === 605 ? (
+            <div className={`mushaf-v2-page shadow-2xl mx-auto bg-[var(--mushaf-bg)] relative z-0 flex flex-col flex-1 min-h-0 w-full max-w-2xl`} key={`page-605`}>
+              {!isNight && <div className="mushaf-v2-frame pointer-events-none" />}
+              
+              <div 
+                className="relative z-10 flex-1 min-h-0 overflow-y-auto px-6 pt-16 pb-32 hide-scrollbar flex flex-col items-center"
+              >
+                <div className="w-24 h-24 rounded-full bg-[var(--mushaf-highlight)] flex items-center justify-center mb-6 shadow-inner shrink-0">
+                  <svg className="w-12 h-12 text-[var(--mushaf-accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                </div>
+                <h2 className="font-amiri text-[var(--mushaf-accent)] font-bold mb-8 text-center" style={{ fontSize: 'calc(1.875rem * var(--mushaf-font-scale))', lineHeight: 1.5 }}>دعاء ختم القرآن الكريم</h2>
+                <div className="w-full max-w-2xl text-center">
+                  <p className="font-amiri text-[var(--mushaf-text)] opacity-90 whitespace-pre-line" style={{ fontSize: 'calc(1.25rem * var(--mushaf-font-scale))', lineHeight: 'calc(2.5 * var(--mushaf-font-scale))' }} dir="rtl">{KHATM_DUAA}</p>
+                </div>
+                <div className="flex-1 min-h-[4rem]" />
+              </div>
 
-          {viewMode === 'image' ? (
+              {/* Footer */}
+              <div className="mushaf-v2-footer" dir="ltr">
+                <button className="p-2 rounded-full opacity-0 pointer-events-none w-9 font-amiri">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                </button>
+                <span className="mushaf-v2-footer-page-num" dir="rtl">دعاء الختم</span>
+                <button onClick={(e) => { e.stopPropagation(); handlePrevPage(); }} className="p-2 rounded-full hover:bg-black/5 active:scale-90 transition-all text-[var(--mushaf-accent)]" title="السابق">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                </button>
+              </div>
+            </div>
+          ) : viewMode === 'image' ? (
             <div className={`mushaf-v2-page shadow-2xl mx-auto bg-[var(--mushaf-bg)] relative z-0 pb-0 px-0`}
             style={{ 
               width: fontScale > 1 ? `${100 * fontScale}%` : '100%',
@@ -659,7 +738,7 @@ export function QuranScreenV2({ onBack, autoOpenSurahId, autoOpenPage, autoOpenV
 
             <button 
               onClick={(e) => { e.stopPropagation(); handleNextPage(); }}
-              className={`fixed left-1 top-1/2 -translate-y-1/2 z-50 p-2 rounded-full bg-black/5 backdrop-blur-sm hover:bg-black/10 active:scale-90 transition-all text-[var(--mushaf-accent)] flex items-center justify-center ${currentPage === 604 ? 'opacity-0 pointer-events-none' : 'opacity-40 hover:opacity-100'}`}
+              className={`fixed left-1 top-1/2 -translate-y-1/2 z-50 p-2 rounded-full bg-black/5 backdrop-blur-sm hover:bg-black/10 active:scale-90 transition-all text-[var(--mushaf-accent)] flex items-center justify-center ${currentPage >= 604 ? 'opacity-0 pointer-events-none' : 'opacity-40 hover:opacity-100'}`}
               title="التالي"
             >
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
@@ -721,10 +800,10 @@ export function QuranScreenV2({ onBack, autoOpenSurahId, autoOpenPage, autoOpenV
             </div>
           ) : (
             /* Text-Based Mode */
-          <div className={`mushaf-v2-page shadow-2xl mx-auto w-full max-w-2xl bg-[var(--mushaf-bg)] relative z-0 flex flex-col h-full overflow-hidden ${fontType !== 'uthmani' ? `mushaf-v2-font-${fontType}` : ''}`} key={`page-${currentPage}-${viewMode}`}>
+          <div className={`mushaf-v2-page shadow-2xl mx-auto w-full max-w-2xl bg-[var(--mushaf-bg)] relative z-0 flex flex-col flex-1 min-h-0 overflow-hidden ${fontType !== 'uthmani' ? `mushaf-v2-font-${fontType}` : ''}`} key={`page-${currentPage}-${viewMode}`}>
             {!isNight && <div className="mushaf-v2-frame" />}
 
-            <div className="mushaf-v2-text-container hide-scrollbar relative z-10 flex-1 overflow-y-auto"
+            <div className="mushaf-v2-text-container hide-scrollbar relative z-10 flex-1 min-h-0 overflow-y-auto"
               style={fontType === 'uthmani' ? { fontFamily: getMushafFontFamily(currentPage) } : {}}>
               {loading ? (
                 <div className="flex-1 flex items-center justify-center h-full">
@@ -786,7 +865,7 @@ export function QuranScreenV2({ onBack, autoOpenSurahId, autoOpenPage, autoOpenV
 
             {/* Footer */}
             <div className="mushaf-v2-footer" dir="ltr">
-              <button onClick={(e) => { e.stopPropagation(); handleNextPage(); }} className="p-2 rounded-full hover:bg-black/5 active:scale-90 transition-all text-[var(--mushaf-accent)]" disabled={currentPage === 604} title="التالي">
+              <button onClick={(e) => { e.stopPropagation(); handleNextPage(); }} className="p-2 rounded-full hover:bg-black/5 active:scale-90 transition-all text-[var(--mushaf-accent)]" disabled={currentPage >= 604} title="التالي">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
               </button>
               <span className="mushaf-v2-footer-page-num" dir="rtl">صفحة {currentPage}</span>
@@ -825,7 +904,7 @@ export function QuranScreenV2({ onBack, autoOpenSurahId, autoOpenPage, autoOpenV
               </button>
               <div>
                 <p className="text-sm font-bold opacity-80 mb-0.5">{surahs.find(s => s.number === verses.find(v => v.verseKey === playingVerseKey)?.chapterId)?.name} — {playingVerseKey?.split(':')[1]}</p>
-                <p className="text-xs opacity-50">{RECITERS.find(r => r.id === reciterId)?.arabicName}</p>
+                <p className="text-xs opacity-50">{RECITERS.find(r => r.islamicNetworkId === reciterId)?.arabicName}</p>
               </div>
             </div>
             <button onClick={() => { audioRef.current?.pause(); setIsPlaying(false); setPlayingVerseKey(null); }} className="p-2 opacity-50 hover:opacity-100"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
@@ -836,7 +915,7 @@ export function QuranScreenV2({ onBack, autoOpenSurahId, autoOpenPage, autoOpenV
       {/* Index (Surah/Juz) */}
       {showIndex && (
         <BottomSheet onClose={() => setShowIndex(false)}>
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col flex-1 min-h-0">
             <div className="px-1 mb-4">
               <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl ${isNight ? 'bg-white/5 border border-white/10' : 'bg-black/5 border border-black/5'}`}>
                 <svg className="w-4 h-4 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
@@ -922,7 +1001,7 @@ export function QuranScreenV2({ onBack, autoOpenSurahId, autoOpenPage, autoOpenV
             <h3 className="font-bold text-xl font-amiri text-[var(--mushaf-text)]">إعدادات القراءة</h3>
             <button onClick={() => setShowSettings(false)} className="p-2 opacity-30 active:bg-black/5 rounded-full"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
           </div>
-          <div className="space-y-8 pb-4">
+          <div className="flex flex-col flex-1 min-h-0 overflow-y-auto hide-scrollbar pb-4 space-y-8">
             <div>
               <p className="text-sm font-bold mb-4 opacity-60">نمط القراءة</p>
               <div className="flex bg-black/5 p-1 rounded-2xl">
@@ -959,7 +1038,7 @@ export function QuranScreenV2({ onBack, autoOpenSurahId, autoOpenPage, autoOpenV
             <div>
               <p className="text-sm font-bold mb-4 opacity-60">صوت القارئ</p>
               <select value={reciterId} onChange={e => setReciterId(e.target.value)} className="w-full p-4 rounded-2xl bg-black/5 border border-black/5 text-[var(--mushaf-text)] outline-none focus:border-[var(--mushaf-accent)] font-bold appearance-none">
-                {RECITERS.map(r => (<option key={r.islamicNetworkId} value={r.id}>{r.arabicName}</option>))}
+                {RECITERS.map(r => (<option key={r.islamicNetworkId} value={r.islamicNetworkId}>{r.arabicName}</option>))}
               </select>
             </div>
 
@@ -1014,7 +1093,7 @@ export function QuranScreenV2({ onBack, autoOpenSurahId, autoOpenPage, autoOpenV
             <h3 className="font-bold text-xl text-[var(--mushaf-text)] font-amiri">تفسير الآية {toArabicNum(selectedVerse.verseNumber)}</h3>
             <button onClick={() => setShowTafsir(false)} className="p-2 opacity-30 active:bg-black/5 rounded-full"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
           </div>
-          <div className="flex flex-col h-full overflow-hidden">
+          <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
             <p className="text-2xl font-amiri text-[var(--mushaf-accent)] mb-6 text-center leading-relaxed px-4 animate-fade-in">{selectedVerse.textUthmani}</p>
 
             <div className="flex overflow-x-auto gap-3 mb-6 pb-2 no-scrollbar" dir="rtl">
@@ -1112,7 +1191,7 @@ function BottomSheet({ children, onClose, height = '85vh' }: { children: React.R
         </div>
         
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto px-6 pb-10 hide-scrollbar relative z-10">
+        <div className="flex-1 flex flex-col min-h-0 px-6 pb-10 hide-scrollbar relative z-10">
           {children}
         </div>
       </div>

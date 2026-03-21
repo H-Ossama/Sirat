@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { fetchHadithBooks, fetchHadiths, HadithBook, Hadith, searchHadith } from '../services/hadithService';
+import { fetchHadithBooks, fetchHadiths, HadithBook, Hadith, searchHadith, getHadithTafsirInfo } from '../services/hadithService';
 import { ChevronLeftIcon, HadithIcon } from './Icons';
 import { useBackHandler } from './BackHandlerContext';
 import { useTheme } from './ThemeContext';
@@ -86,9 +86,10 @@ function filterByTopic(hadiths: Hadith[], topicId: string): Hadith[] {
 }
 
 function HadithCard({ hadith, isDark, isSaved, onToggleSave }: { hadith: Hadith; isDark: boolean; isSaved?: boolean; onToggleSave?: (hadith: Hadith) => void }) {
-    const [showTrans, setShowTrans] = useState(false);
+    const [showTafsir, setShowTafsir] = useState(false);
     const [isSharing, setIsSharing] = useState(false);
     const bookArabicName = getBookArabicName({ bookSlug: hadith.bookSlug, bookName: hadith.bookName } as any);
+    const { tafsir, searchUrl } = getHadithTafsirInfo(hadith);
 
     const handleCopy = async () => {
         const text = `« ${hadith.hadithArabic} »\n\nالمرجع: ${bookArabicName} - حديث رقم ${hadith.hadithNumber}\n\n(تم النسخ من تطبيق Sirat 🌙)`;
@@ -273,10 +274,27 @@ function HadithCard({ hadith, isDark, isSaved, onToggleSave }: { hadith: Hadith;
                     {hadith.hadithArabic}
                 </p>
 
-                {showTrans && hadith.hadithEnglish && (
-                    <p className={`text-[14px] leading-relaxed italic border-t pt-4 mb-4 animate-fade-in ${isDark ? 'text-white/60 border-white/[0.05]' : 'text-slate-500 border-slate-100'}`}>
-                        {hadith.hadithEnglish}
-                    </p>
+                {showTafsir && (
+                    <div className={`text-[14px] leading-relaxed border-t pt-4 mb-4 animate-fade-in ${isDark ? 'text-white/60 border-white/[0.05]' : 'text-slate-600 border-slate-100'}`}>
+                        {tafsir ? (
+                             <p className="font-amiri leading-loose text-right" dir="rtl">{tafsir}</p>
+                        ) : (
+                            <div className="flex flex-col items-center py-5 bg-red-400/5 rounded-2xl border border-red-400/10">
+                                <p className="text-red-500 font-amiri text-center mb-4">نعتذر، لم نجد تفسيراً مباشراً لهذا الحديث حالياً.</p>
+                                <a 
+                                    href={searchUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center gap-2 ${isDark ? 'bg-gold-400/20 text-gold-300 border border-gold-400/30' : 'bg-gold-500 text-white shadow-md'}`}
+                                >
+                                    <span>بحث عن الشرح في الدرر السنية</span>
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    </svg>
+                                </a>
+                            </div>
+                        )}
+                    </div>
                 )}
 
                 <div className="flex items-center justify-between mt-2 flex-row-reverse">
@@ -326,22 +344,20 @@ function HadithCard({ hadith, isDark, isSaved, onToggleSave }: { hadith: Hadith;
                             </svg>
                         </button>
 
-                        {hadith.hadithEnglish && (
-                            <button
-                                onClick={() => setShowTrans(v => !v)}
-                                className={`flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full border transition-all active:scale-95 ${showTrans
-                                    ? isDark ? 'bg-gold-400/15 border-gold-400/30 text-gold-300' : 'bg-gold-100 border-gold-200 text-gold-700'
-                                    : isDark ? 'bg-white/[0.04] border-white/[0.08] text-white/30' : 'bg-slate-100 border-slate-200 text-slate-400'
-                                    }`}
-                            >
-                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                    {showTrans
-                                        ? <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                                        : <><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></>}
-                                </svg>
-                                {showTrans ? 'إخفاء' : 'الترجمة'}
-                            </button>
-                        )}
+                        <button
+                            onClick={() => setShowTafsir(v => !v)}
+                            className={`flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full border transition-all active:scale-95 ${showTafsir
+                                ? isDark ? 'bg-gold-400/15 border-gold-400/30 text-gold-300' : 'bg-gold-100 border-gold-200 text-gold-700'
+                                : isDark ? 'bg-white/[0.04] border-white/[0.08] text-white/30' : 'bg-slate-100 border-slate-200 text-slate-400'
+                                }`}
+                        >
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                {showTafsir
+                                    ? <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                    : <><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></>}
+                            </svg>
+                            {showTafsir ? 'إخفاء' : 'تفسير الحديث'}
+                        </button>
                     </div>
                 </div>
             </div>

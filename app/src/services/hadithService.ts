@@ -13,6 +13,10 @@ export interface Hadith {
     bookSlug: string;
     chapterName: string;
     chapterNumber: string;
+    hadithTafsir?: string;
+    headingArabic?: string;
+    headingUrdu?: string;
+    headingEnglish?: string;
 }
 
 export interface HadithBook {
@@ -53,4 +57,25 @@ export async function searchHadith(query: string): Promise<Hadith[]> {
         return data.hadiths.data;
     }
     return [];
+}
+
+const HADITH_TAFSIR_MAP: Record<string, string> = {
+    'sahih-bukhari-1': 'هذا الحديث قاعدة عظيمة من قواعد الإسلام، ومدار أعمال العباد فكل ما يتقرب به العبد إلى ربه وما لم يتقرب لا يكون إلا بالنية، وهو مع ذلك من أجمع الأحاديث وأعظمها نفعاً. المعنى العام: أن الأعمال لا تصح ولا يعتد بها شرعاً إلا إذا كانت بنية خالصة لله تعالى.',
+    'sahih-muslim-1': 'هذا هو "حديث جبريل" الشهير، وفيه بيان أركان الدين الثلاثة: الإسلام (الأعمال الظاهرة)، والإيمان (الاعتقادات الباطنة)، والإحسان (استحضار مراقبة الله)، كما ذكر فيه علامات الساعة. سماه النبي صلى الله عليه وسلم "دينكم" لأنه يجمع أصول الشريعة.',
+    'riyad-us-saliheen-1': 'حديث "إنما الأعمال بالنيات" هو أصل كبير في الدين، وضع الإمام النووي هذا الحديث في أول كتابه لينبه القارئ على أهمية إخلاص النية لله في طلب العلم والعمل به.',
+    'sahih-bukhari-2': 'يتحدث هذا الحديث عن كيفية بدء الوحي إلى النبي صلى الله عليه وسلم، ويبين ثقل الوحي وعظم الرسالة، وكيف كان يأتيه في صور مختلفة مثل صلصلة الجرس أو يتمثل له الملك رجلاً.',
+};
+
+export function getHadithTafsirInfo(hadith: Hadith) {
+    const key = `${hadith.bookSlug}-${hadith.hadithNumber}`;
+    const localTafsir = HADITH_TAFSIR_MAP[key];
+    
+    // Generate an authoritative search link for Dorar.net
+    const searchQuery = encodeURIComponent(hadith.hadithArabic.substring(0, 80));
+    const searchUrl = `https://www.dorar.net/h/search?q=${searchQuery}`;
+    
+    return {
+        tafsir: localTafsir || hadith.hadithTafsir,
+        searchUrl
+    };
 }

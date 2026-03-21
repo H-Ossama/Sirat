@@ -1,7 +1,7 @@
 {
     "name": "me3raj",
     "private": true,
-    "version": "3.2.22-Beta",
+    "version": "3.3.0-Beta",
     "type": "module",
     "scripts": {
         "dev": "vite --host",

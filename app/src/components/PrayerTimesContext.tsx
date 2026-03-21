@@ -88,17 +88,24 @@ export function PrayerTimesProvider({ children }: { children: React.ReactNode })
                     });
 
                     // 2. Hijri Date Widget
-                    console.log('Updating Hijri:', `${hijriDayVal} ${prayerData.hijriMonth}`);
+                    const adjustedHijriDay = hijriDayVal + hijriAdj;
+                    // Minimal boundary check (assuming roughly 29-30 days months)
+                    let finalHDay = adjustedHijriDay;
+                    if (finalHDay < 1) finalHDay = 30 + finalHDay;
+                    if (finalHDay > 30 && hijriDayVal <= 30) finalHDay = finalHDay - 30;
+
+                    console.log('Updating Hijri:', `${finalHDay} ${prayerData.hijriMonth}`);
                     await Widget.updateHijri({
                         dayName: now.toLocaleDateString('ar-SA', { weekday: 'long' }),
-                        date: `${hijriDayVal} ${prayerData.hijriMonth}`,
+                        date: `${finalHDay} ${prayerData.hijriMonth}`,
                         year: `${prayerData.hijriYear} هـ`,
-                        gregorian: gregDateStr,
-                        hDay: hijriDayVal,
+                        gregorian: `${now.getDate()} ${now.toLocaleString('ar-SA', { month: 'long' })} ${now.getFullYear()}`, 
+                        hDay: finalHDay,
                         hMonthIndex: prayerData.hijriMonthValue || 1
                     });
 
                     // 3. Athkar Widget
+                    // ... (rest should be unchanged but I'll write the whole block to be safe)
                     console.log('Updating Athkar Widget');
                     const isMorning = now.getHours() < 12;
                     await Widget.updateAthkar({
@@ -149,7 +156,7 @@ export function PrayerTimesProvider({ children }: { children: React.ReactNode })
                         const hijriDays: string[] = [];
                         for (let d = 1; d <= daysInMonth; d++) {
                             const offset = d - todayDate;
-                            let hDay = hijriDayVal + offset;
+                            let hDay = finalHDay + offset;
                             if (hDay < 1) hDay = 30 + hDay;
                             if (hDay > 30) hDay = hDay - 30;
                             hijriDays.push(String(hDay));

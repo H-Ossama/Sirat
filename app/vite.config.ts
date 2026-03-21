@@ -18,6 +18,13 @@ export default defineConfig({
         port: 3000,
         host: true,
         strictPort: true,
+        proxy: {
+            '/siraj-proxy': {
+                target: 'https://siraj.net',
+                changeOrigin: true,
+                rewrite: (path) => path.replace(/^\/siraj-proxy/, ''),
+            }
+        }
     },
     build: {
         outDir: "dist",

@@ -186,7 +186,8 @@ export async function fetchMushafPage(
     // 2. Fallback to cache/online
     const CACHE_VERSION = 'v10'; // Bumped for offline transition
     const CACHE_PREFIX = `mushaf_page_${CACHE_VERSION}_`;
-    const cacheKey = `${CACHE_PREFIX}${pageNum}_r${recitationId}`;
+    const reciter = RECITERS.find(r => r.islamicNetworkId === recitationId || r.id === recitationId) || RECITERS[0];
+    const cacheKey = `${CACHE_PREFIX}${pageNum}_r${reciter.islamicNetworkId}`;
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
         try { return JSON.parse(cached); } catch { /* fallthrough */ }
@@ -198,7 +199,7 @@ export async function fetchMushafPage(
         `?words=true&per_page=50` +
         `&fields=text_uthmani,verse_key,chapter_id,juz_number,hizb_number,rub_el_hizb_number` +
         `&word_fields=code_v1,code_v2,page_number,line_number,char_type_name,text,text_uthmani,audio_url` +
-        `&tafsirs=90&audio=${recitationId}`;
+        `&tafsirs=90&audio=${reciter.id}`;
 
     const res = await fetch(url);
     if (!res.ok) throw new Error(`Failed to fetch mushaf page ${pageNum}`);
@@ -242,7 +243,7 @@ export async function fetchMushafPage(
             translationText: w.translation?.text,
             verseNumber: v.verse_number,
         })),
-        audioUrl: v.audio?.url ? `${AUDIO_BASE}${v.audio.url}` : undefined,
+        audioUrl: `https://cdn.islamic.network/quran/audio/128/${reciter.islamicNetworkId}/${v.id}.mp3`,
         tafsirs: {
             ...((v.tafsirs || []).reduce((acc: any, t: any) => {
                 acc[t.resource_id] = t.text;

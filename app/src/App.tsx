@@ -649,7 +649,8 @@ function AppContent() {
 
     const hideTabBar = currentScreen === 'quran'
         || (currentScreen === 'videos' && videosInCategory)
-        || (currentScreen === 'hadith' && hadithInDetails);
+        || (currentScreen === 'hadith' && hadithInDetails)
+        || currentScreen === 'books';
 
     const showBg = ['home', 'hadith', 'videos'].includes(currentScreen) && appBgSettings.image !== 'none';
     const bgUrl = appBgSettings.image === 'custom' ? appBgSettings.custom : appBgSettings.image;

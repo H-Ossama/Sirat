@@ -342,7 +342,67 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
                 </button>
             </div>
 
-            {/* ── XP / Streak Banner ── */}
+            {/* ── Quick Actions ── moved up */}
+            <div className="px-5 mb-5" dir="rtl">
+                <div className="flex items-center justify-between mb-3 px-1">
+                    <p className={`text-[12px] font-bold uppercase tracking-wider ${isDark ? 'text-white/20' : 'text-slate-400'}`}>الوصول السريع</p>
+                </div>
+                <div className="grid grid-cols-4 gap-3">
+                    {[
+                        { img: '/assets/quick-actions/quran.png', label: 'المصحف الشريف', screen: 'quran' },
+                        { img: '/assets/quick-actions/hadith.png', label: 'الحديث', screen: 'hadith' },
+                        { img: '/assets/quick-actions/duas.png', label: 'الأدعية', screen: 'duas' },
+                        { img: '/assets/quick-actions/adhkar.png', label: 'الأذكار', screen: 'adhkar' },
+                        { img: '/assets/quick-actions/tasbih.png', label: 'التسبيح', screen: 'tasbih' },
+                        { img: '/assets/quick-actions/calendar.png', label: 'التقويم', screen: 'calendar' },
+                        { img: '/assets/quick-actions/qibla.png', label: 'القبلة', screen: 'qibla' },
+                        { img: '/assets/quick-actions/zakat.png', label: 'الزكاة', screen: 'zakat' },
+                    ].map((item) => (
+                        <button
+                            key={item.screen}
+                            onClick={() => onNavigate(item.screen)}
+                            className={`flex flex-col items-center gap-2 py-4 rounded-3xl transition-all active:scale-95 border ${isDark
+                                ? 'bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.04]'
+                                : 'bg-white border-slate-100 shadow-sm hover:shadow-md'
+                                }`}
+                        >
+                            <div className="w-14 h-14 flex items-center justify-center transition-all">
+                                <img src={item.img} className="w-12 h-12 object-contain drop-shadow-md" alt={item.label} />
+                            </div>
+                            <span className={`text-[10px] font-bold ${isDark ? 'text-white/40' : 'text-slate-500'}`}>{item.label}</span>
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Women's Section Banner (Visible only for females) - Moved under Quick Actions */}
+            {gender === 'female' && (
+                <div className="px-5 mb-5" dir="rtl">
+                    <button
+                        onClick={() => onNavigate('women')}
+                        className={`w-full p-5 rounded-[2rem] flex items-center justify-between border relative overflow-hidden group ${isDark
+                            ? 'bg-gradient-to-br from-pink-500/[0.1] to-purple-500/[0.05] border-pink-400/[0.15]'
+                            : 'bg-gradient-to-br from-pink-50 to-purple-50 border-pink-100 shadow-sm'}`}
+                    >
+                        <div className="relative z-10 flex items-center gap-4">
+                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDark ? 'bg-pink-400/20 text-pink-300' : 'bg-pink-100 text-pink-600'}`}>
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
+                            </div>
+                            <div className="text-right">
+                                <h3 className={`font-bold font-amiri text-lg ${isDark ? 'text-pink-100' : 'text-pink-900'}`}>ركن المرأة المسلمة</h3>
+                                <p className={`text-xs mt-1 ${isDark ? 'text-pink-200/60' : 'text-pink-700/60'}`}>أحاديث، إرشادات، وأحكام شرعية</p>
+                            </div>
+                        </div>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-transform group-active:-translate-x-1 ${isDark ? 'bg-pink-400/10 text-pink-300' : 'bg-white text-pink-500 shadow-sm'}`}>
+                            <svg className="w-4 h-4 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                        </div>
+                    </button>
+                </div>
+            )}
+
+            {/* ── XP / Streak Banner ── moved under Quick Actions */}
             <div className="px-5 mb-5" dir="rtl">
                 <div className={`rounded-2xl px-5 py-3.5 flex items-center justify-between border ${isDark
                     ? 'bg-gradient-to-r from-gold-500/[0.07] to-amber-500/[0.04] border-gold-400/[0.12]'
@@ -370,7 +430,7 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
                 </div>
             </div>
 
-            {/* ── Daily Challenge ── */}
+            {/* ── Daily Challenge ── moved under XP/Quick Actions */}
             <div className="px-5 mb-5" dir="rtl">
                 <div className={`rounded-3xl p-5 border relative overflow-hidden transition-all ${challengeCompleted
                     ? isDark ? 'bg-emerald-500/[0.07] border-emerald-400/20' : 'bg-emerald-50 border-emerald-100'
@@ -437,65 +497,6 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
                 </div>
             </div>
 
-            {/* ── Quick Actions ── */}
-            <div className="px-5 mb-5" dir="rtl">
-                <div className="flex items-center justify-between mb-3 px-1">
-                    <p className={`text-[12px] font-bold uppercase tracking-wider ${isDark ? 'text-white/20' : 'text-slate-400'}`}>الوصول السريع</p>
-                </div>
-                <div className="grid grid-cols-4 gap-3">
-                    {[
-                        { img: '/assets/quick-actions/quran.png', label: 'المصحف الشريف', screen: 'quran' },
-                        { img: '/assets/quick-actions/hadith.png', label: 'الحديث', screen: 'hadith' },
-                        { img: '/assets/quick-actions/duas.png', label: 'الأدعية', screen: 'duas' },
-                        { img: '/assets/quick-actions/adhkar.png', label: 'الأذكار', screen: 'adhkar' },
-                        { img: '/assets/quick-actions/tasbih.png', label: 'التسبيح', screen: 'tasbih' },
-                        { img: '/assets/quick-actions/calendar.png', label: 'التقويم', screen: 'calendar' },
-                        { img: '/assets/quick-actions/qibla.png', label: 'القبلة', screen: 'qibla' },
-                        { img: '/assets/quick-actions/zakat.png', label: 'الزكاة', screen: 'zakat' },
-                    ].map((item) => (
-                        <button
-                            key={item.screen}
-                            onClick={() => onNavigate(item.screen)}
-                            className={`flex flex-col items-center gap-2 py-4 rounded-3xl transition-all active:scale-95 border ${isDark
-                                ? 'bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.04]'
-                                : 'bg-white border-slate-100 shadow-sm hover:shadow-md'
-                                }`}
-                        >
-                            <div className="w-14 h-14 flex items-center justify-center transition-all">
-                                <img src={item.img} className="w-12 h-12 object-contain drop-shadow-md" alt={item.label} />
-                            </div>
-                            <span className={`text-[10px] font-bold ${isDark ? 'text-white/40' : 'text-slate-500'}`}>{item.label}</span>
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {/* Women's Section Banner (Visible only for females) */}
-            {gender === 'female' && (
-                <div className="px-5 mb-5" dir="rtl">
-                    <button
-                        onClick={() => onNavigate('women')}
-                        className={`w-full p-5 rounded-[2rem] flex items-center justify-between border relative overflow-hidden group ${isDark
-                            ? 'bg-gradient-to-br from-pink-500/[0.1] to-purple-500/[0.05] border-pink-400/[0.15]'
-                            : 'bg-gradient-to-br from-pink-50 to-purple-50 border-pink-100 shadow-sm'}`}
-                    >
-                        <div className="relative z-10 flex items-center gap-4">
-                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDark ? 'bg-pink-400/20 text-pink-300' : 'bg-pink-100 text-pink-600'}`}>
-                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                                </svg>
-                            </div>
-                            <div className="text-right">
-                                <h3 className={`font-bold font-amiri text-lg ${isDark ? 'text-pink-100' : 'text-pink-900'}`}>ركن المرأة المسلمة</h3>
-                                <p className={`text-xs mt-1 ${isDark ? 'text-pink-200/60' : 'text-pink-700/60'}`}>أحاديث، إرشادات، وأحكام شرعية</p>
-                            </div>
-                        </div>
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-transform group-active:-translate-x-1 ${isDark ? 'bg-pink-400/10 text-pink-300' : 'bg-white text-pink-500 shadow-sm'}`}>
-                            <svg className="w-4 h-4 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
-                        </div>
-                    </button>
-                </div>
-            )}
 
             {/* Hidden Share Card for Hadith */}
             <div className="overflow-hidden h-0 w-0 absolute pointer-events-none">

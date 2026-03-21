@@ -15,6 +15,25 @@ import java.util.Locale;
 
 public class CalendarWidget extends AppWidgetProvider {
 
+    private static String formatLatinNumber(int num) {
+        return "\u200E" + num;
+    }
+
+    private static String formatLatinString(String text) {
+        if (text == null) return null;
+        text = text.replace("٠", "0")
+                   .replace("١", "1")
+                   .replace("٢", "2")
+                   .replace("٣", "3")
+                   .replace("٤", "4")
+                   .replace("٥", "5")
+                   .replace("٦", "6")
+                   .replace("٧", "7")
+                   .replace("٨", "8")
+                   .replace("٩", "9");
+        return "\u200E" + text;
+    }
+
     private static final String ACTION_PREV_MONTH = "com.me3raj.app.CALENDAR_PREV_MONTH";
     private static final String ACTION_NEXT_MONTH = "com.me3raj.app.CALENDAR_NEXT_MONTH";
     private static final String ACTION_GO_TODAY = "com.me3raj.app.CALENDAR_GO_TODAY";
@@ -135,7 +154,7 @@ public class CalendarWidget extends AppWidgetProvider {
             }
 
             // Set header
-            views.setTextViewText(R.id.calendar_month_title, HIJRI_MONTHS_AR[targetHijriMonth] + " " + targetHijriYear);
+            views.setTextViewText(R.id.calendar_month_title, HIJRI_MONTHS_AR[targetHijriMonth] + " " + formatLatinNumber(targetHijriYear));
 
             // Calculate the approximate Gregorian equivalent for subtitle
             // Days offset from today's Hijri to target month's 1st day
@@ -145,7 +164,7 @@ public class CalendarWidget extends AppWidgetProvider {
             Calendar approxGreg = (Calendar) today.clone();
             approxGreg.add(Calendar.DAY_OF_YEAR, daysToTarget1st);
             SimpleDateFormat gregSubFormat = new SimpleDateFormat("MMMM yyyy", Locale.forLanguageTag("ar"));
-            views.setTextViewText(R.id.calendar_subtitle, gregSubFormat.format(approxGreg.getTime()));
+            views.setTextViewText(R.id.calendar_subtitle, formatLatinString(gregSubFormat.format(approxGreg.getTime())));
 
             // Determine days in this hijri month (alternating 30/29, Dhul Hijjah can be 30 in leap years)
             int daysInHijriMonth = (targetHijriMonth % 2 == 0) ? 30 : 29;
@@ -208,7 +227,7 @@ public class CalendarWidget extends AppWidgetProvider {
                 for (int c = 0; c < 7; c++) {
                     int cellIndex = r * 7 + c;
                     if (cellIndex >= firstDayOfWeek && dayCounter <= daysInHijriMonth) {
-                        views.setTextViewText(CELL_IDS[r][c], String.valueOf(dayCounter));
+                        views.setTextViewText(CELL_IDS[r][c], formatLatinNumber(dayCounter));
 
                         // Highlight today
                         if (isTodayMonth && dayCounter == currentHijriDay) {
@@ -233,14 +252,14 @@ public class CalendarWidget extends AppWidgetProvider {
             int targetMonth = cal.get(Calendar.MONTH);
 
             // Set header
-            SimpleDateFormat gregFormat = new SimpleDateFormat("MMMM yyyy", Locale.forLanguageTag("ar"));
-            views.setTextViewText(R.id.calendar_month_title, gregFormat.format(cal.getTime()));
+            SimpleDateFormat gregFormat = new SimpleDateFormat("MMMM yyyy", new Locale("ar"));
+            views.setTextViewText(R.id.calendar_month_title, formatLatinString(gregFormat.format(cal.getTime())));
 
             // Subtitle: show approximate hijri month
             SharedPreferences mainPrefs = context.getSharedPreferences("Me3rajWidgetPrefs", Context.MODE_PRIVATE);
             String hijriTitle = mainPrefs.getString("widget_cal_hijri_title_" + targetYear + "_" + (targetMonth + 1), "");
             if (!hijriTitle.isEmpty() && monthOffset == 0) {
-                views.setTextViewText(R.id.calendar_subtitle, hijriTitle);
+                views.setTextViewText(R.id.calendar_subtitle, formatLatinString(hijriTitle));
             } else {
                 views.setTextViewText(R.id.calendar_subtitle, "");
             }
@@ -266,7 +285,7 @@ public class CalendarWidget extends AppWidgetProvider {
                 for (int c = 0; c < 7; c++) {
                     int cellIndex = r * 7 + c;
                     if (cellIndex >= firstDayOfWeek && dayCounter <= daysInMonth) {
-                        views.setTextViewText(CELL_IDS[r][c], String.valueOf(dayCounter));
+                        views.setTextViewText(CELL_IDS[r][c], formatLatinNumber(dayCounter));
 
                         // Highlight today
                         if (dayCounter == todayDay && targetMonth == todayMonth && targetYear == todayYear) {
